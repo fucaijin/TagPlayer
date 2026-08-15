@@ -13,3 +13,7 @@
 /.vercel
 /.kotlin
 *.txt
+/参考文件
+.history
+.kotlin
+.idea
