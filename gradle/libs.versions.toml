@@ -13,6 +13,7 @@ glideCompose = "1.0.0-beta01"
 retrofit = "3.0.0"
 retrofitKotlinxSerialization = "1.0.0"
 room = "2.7.2"
+jaudiotagger = "2.2.6"
 xxpermissions = "21.2"
 workRuntimeKtx = "2.10.4"
 activityCompose = "1.10.1"
@@ -58,6 +59,8 @@ baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprof
 android-dynamic-feature = { id = "com.android.dynamic-feature", version.ref = "agp" }
 
 [libraries]
+jaudiotagger = { module = "org.jaudiotagger:jaudiotagger", version.ref = "jaudiotagger" }
+
 # kotlin
 kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }

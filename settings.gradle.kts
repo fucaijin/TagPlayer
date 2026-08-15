@@ -1,5 +1,14 @@
 pluginManagement {
     repositories {
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+        }
+        maven {
+            url = uri("https://maven.aliyun.com/repository/google")
+        }
+        maven {
+            url = uri("https://maven.aliyun.com/repository/gradle-plugin")
+        }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -15,6 +24,12 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+        }
+        maven {
+            url = uri("https://maven.aliyun.com/repository/google")
+        }
         google()
         mavenCentral()
         maven(url = "https://jitpack.io")
@@ -25,5 +40,3 @@ rootProject.name = "APlayer"
 include(":app")
 include(":baselineprofile")
 include(":feature_smb")
-include(":taglib")
-project(":taglib").projectDir = file("third-party/taglib")

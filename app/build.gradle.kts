@@ -213,7 +213,8 @@ android {
                     else -> ""
                 }
                 if (sortPrefix.isNotEmpty()) {
-                    (output as BaseVariantOutputImpl).outputFileName = "${sortPrefix}-APlayer-v${variant.versionName}-${flavor}-release.apk"
+                    (output as BaseVariantOutputImpl).outputFileName =
+                        "${sortPrefix}-APlayer-v${variant.versionName}-${flavor}-release.apk"
                 }
             }
         }
@@ -234,6 +235,7 @@ baselineProfile {
 }
 
 dependencies {
+    implementation(libs.jaudiotagger)
     implementation(libs.kotlinx.coroutines)
 //    implementation(libs.kotlinx.serialization)
 
@@ -298,7 +300,7 @@ dependencies {
     implementation(libs.androidx.profileinstaller)
     "baselineProfile"(project(":baselineprofile"))
 
-    implementation(project(":taglib"))
+//    implementation(project(":taglib"))
 }
 
 // 上传mapping文件
