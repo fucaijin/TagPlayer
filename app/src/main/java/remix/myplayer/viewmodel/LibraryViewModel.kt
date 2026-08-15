@@ -37,6 +37,7 @@ import remix.myplayer.repo.GenreRepository
 import remix.myplayer.repo.HistoryRepository
 import remix.myplayer.repo.PlayListRepository
 import remix.myplayer.repo.SongRepository
+import remix.myplayer.repo.SongTagRepository
 import remix.myplayer.repo.usecase.ExportPlayListUseCase
 import remix.myplayer.repo.usecase.PlayFromUriUseCase
 import remix.myplayer.service.MusicEventCallback
@@ -61,6 +62,7 @@ class LibraryViewModel @Inject constructor(
   private val uriFetcher: UriFetcher,
   private val historyRepo: HistoryRepository,
   val settingPrefs: SettingPrefs,
+  private val songTagRepo: SongTagRepository,
   private val exportPlayListUseCase: ExportPlayListUseCase,
   private val playFromUriUseCase: PlayFromUriUseCase
 ) : ViewModel(), MusicEventCallback {
@@ -69,6 +71,11 @@ class LibraryViewModel @Inject constructor(
 
   private val _songs = MutableStateFlow<List<Song>>(emptyList())
   val songs: StateFlow<List<Song>> = _songs.asStateFlow()
+
+  // 歌曲路径 -> 标签集合（来自缓存表，音频文件为唯一真相源）
+  val songTags: StateFlow<Map<String, Set<String>>> =
+    songTagRepo.tagsFlow()
+      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
   private val _albums = MutableStateFlow<List<Album>>(emptyList())
   val albums: StateFlow<List<Album>> = _albums.asStateFlow()
@@ -232,6 +239,8 @@ class LibraryViewModel @Inject constructor(
       _genres.value = async(Dispatchers.IO) { genreRepo.allGenres() }.await()
       _folders.value = async(Dispatchers.IO) { folderRepo.allFolders() }.await()
       Timber.v("songCount: ${_songs.value.size} albumCount: ${_albums.value.size} artistCount: ${_artists.value.size} genreCount: ${_genres.value.size} folderCount: ${_folders.value.size}")
+      // 增量同步歌曲标签索引到缓存表
+      songTagRepo.refreshIndex(_songs.value)
     }
   }
 
