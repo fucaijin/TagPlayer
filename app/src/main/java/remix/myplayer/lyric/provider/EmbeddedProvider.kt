@@ -47,12 +47,12 @@ class EmbeddedProvider @Inject constructor(
       }.getOrDefault("")
     }
 
-    private fun extractLyric(propertyMap: Map<String, Array<String>>): String {
+    private fun extractLyric(propertyMap: com.kyant.taglib.PropertyMap): String {
       AudioTagFile.firstValue(propertyMap, AudioTagFile.LYRICS).takeIf(String::isNotEmpty)?.let {
         return it
       }
 
-      // TagLib maps ID3 USLT descriptions to LYRICS:<description> and TXXX descriptions to
+      // com.kyant.taglib.TagLib maps ID3 USLT descriptions to LYRICS:<description> and TXXX descriptions to
       // property keys, so this retains the former frame-specific fallback without ID3 APIs.
       propertyMap.entries.firstNotNullOfOrNull { (key, values) ->
         val normalizedKey = key.lowercase()

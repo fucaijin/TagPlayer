@@ -1,6 +1,5 @@
 package remix.myplayer.helper
 
-import android.os.ParcelFileDescriptor
 import com.kyant.taglib.AudioProperties
 import com.kyant.taglib.Metadata
 import com.kyant.taglib.Picture
@@ -10,12 +9,6 @@ import remix.myplayer.data.model.audio.ReplayGain
 import java.io.File
 import java.io.IOException
 
-/**
- * File-based access to audio metadata through TagLib.
- *
- * TagLib takes ownership of the supplied raw file descriptor, so every call uses a detached
- * duplicate and leaves the [ParcelFileDescriptor] owned by Android untouched.
- */
 object AudioTagFile {
 
   const val TITLE = "TITLE"
@@ -30,36 +23,24 @@ object AudioTagFile {
   const val LYRICS = "LYRICS"
 
   fun readAudioProperties(file: File): AudioProperties? =
-    withFileDescriptor(file, ParcelFileDescriptor.MODE_READ_ONLY) { fd ->
-      TagLib.getAudioProperties(fd)
-    }
+    TagLib.getAudioProperties(file.absolutePath)
 
   fun readMetadata(file: File, readPictures: Boolean = true): Metadata? =
-    withFileDescriptor(file, ParcelFileDescriptor.MODE_READ_ONLY) { fd ->
-      TagLib.getMetadata(fd, readPictures)
-    }
+    TagLib.getMetadata(file.absolutePath, readPictures)
 
   fun readFrontCover(file: File): Picture? =
-    withFileDescriptor(file, ParcelFileDescriptor.MODE_READ_ONLY) { fd ->
-      TagLib.getFrontCover(fd)
-    }
+    TagLib.getFrontCover(file.absolutePath)
 
   fun readReplayGain(file: File): ReplayGain? =
-    withFileDescriptor(file, ParcelFileDescriptor.MODE_READ_ONLY) { fd ->
-      TagLib.getMetadata(fd, readPictures = false)?.propertyMap?.let { map ->
-        ReplayGain.fromPropertyMap(map)
-      }
+    TagLib.getMetadata(file.absolutePath, readPictures = false)?.propertyMap?.let { map ->
+      ReplayGain.fromPropertyMap(map)
     }
 
   fun savePropertyMap(file: File, propertyMap: PropertyMap): Boolean =
-    withFileDescriptor(file, ParcelFileDescriptor.MODE_READ_WRITE) { fd ->
-      TagLib.savePropertyMap(fd, propertyMap)
-    }
+    TagLib.savePropertyMap(file.absolutePath, propertyMap)
 
   fun savePictures(file: File, pictures: Array<Picture>): Boolean =
-    withFileDescriptor(file, ParcelFileDescriptor.MODE_READ_WRITE) { fd ->
-      TagLib.savePictures(fd, pictures)
-    }
+    TagLib.savePictures(file.absolutePath, pictures)
 
   fun firstValue(propertyMap: Map<String, Array<String>>?, key: String): String =
     propertyMap?.get(key)?.firstOrNull().orEmpty()
@@ -76,13 +57,5 @@ object AudioTagFile {
     if (!saved) {
       throw IOException("TagLib failed to $operation")
     }
-  }
-
-  private inline fun <T> withFileDescriptor(
-    file: File,
-    mode: Int,
-    block: (Int) -> T
-  ): T = ParcelFileDescriptor.open(file, mode).use { descriptor ->
-    block(descriptor.dup().detachFd())
   }
 }

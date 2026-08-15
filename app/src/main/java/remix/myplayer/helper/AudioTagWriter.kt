@@ -168,7 +168,7 @@ object AudioTagWriter {
 
   private fun updateAudioFile(file: File, request: PendingWriteRequest) {
     val propertyMap = AudioTagFile.readMetadata(file, readPictures = false)?.propertyMap
-      ?: throw IOException("TagLib cannot read metadata from ${file.path}")
+      ?: throw IOException("com.kyant.taglib.TagLib cannot read metadata from ${file.path}")
     request.fieldMap.forEach { (key, value) ->
       AudioTagFile.setValue(propertyMap, key, value)
     }

@@ -41,7 +41,7 @@ android {
     ndkVersion = "25.2.9519653"
 
     defaultConfig {
-        applicationId = "remix.myplayer"
+        applicationId = "remix.myplayer.fcj"
         minSdk = 21
         targetSdk = 35
 
@@ -235,7 +235,6 @@ baselineProfile {
 }
 
 dependencies {
-    implementation(libs.jaudiotagger)
     implementation(libs.kotlinx.coroutines)
 //    implementation(libs.kotlinx.serialization)
 
@@ -299,8 +298,7 @@ dependencies {
 
     implementation(libs.androidx.profileinstaller)
     "baselineProfile"(project(":baselineprofile"))
-
-//    implementation(project(":taglib"))
+    implementation("org.jaudiotagger:jaudiotagger:2.0.1")
 }
 
 // 上传mapping文件
