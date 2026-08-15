@@ -433,6 +433,16 @@
   <string name="speed_range_tip">输入范围为0.5-2</string>
   <string name="show_displayname">歌曲列表显示文件名</string>
   <string name="show_displayname_tip">如果歌曲列表出现乱码可尝试开启该选项</string>
+  <string name="song_list">歌曲列表</string>
+  <string name="setting_list_desc">歌曲列表显示与标签选项</string>
+  <string name="list_show_tag">列表条目标签显示</string>
+  <string name="list_show_tag_tip">在歌曲列表条目底部显示该歌曲的标签</string>
+  <string name="list_tag_manage">列表条目标签管理</string>
+  <string name="list_tag_manage_tip">在歌曲列表条目右侧显示五角星按钮，用于管理该歌曲的标签</string>
+  <string name="list_show_number">显示歌曲列表序号</string>
+  <string name="list_show_number_tip">在歌曲列表中显示序号</string>
+  <string name="list_show_artist_album">显示艺术家专辑名</string>
+  <string name="list_show_artist_album_tip">在歌曲名称下方显示\"艺术家-专辑名\"</string>
   <string name="force_sort">强制排序</string>
   <string name="force_sort_tip">强制将歌曲、专辑、歌手、播放列表按拼音排序\n可能使加载时间大幅延长</string>
   <string name="accent_color">强调色</string>

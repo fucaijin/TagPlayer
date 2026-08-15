@@ -96,6 +96,18 @@ data class NotificationSettings(
 )
 
 @Stable
+data class ListSettings(
+  /** 列表条目标签显示 */
+  val showTag: Boolean,
+  /** 列表条目标签管理（五角星按钮） */
+  val tagManage: Boolean,
+  /** 显示歌曲列表序号 */
+  val showNumber: Boolean,
+  /** 显示艺术家-专辑名 */
+  val showArtistAlbum: Boolean,
+)
+
+@Stable
 data class SettingsState(
   val common: CommonSettings,
   val play: PlaySettings,
@@ -105,4 +117,5 @@ data class SettingsState(
   val cover: CoverSettings,
   val lyric: LyricSettings,
   val notification: NotificationSettings,
+  val list: ListSettings,
 )

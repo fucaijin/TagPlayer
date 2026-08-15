@@ -436,6 +436,16 @@
   <string name="speed_range_tip">The range is 0.5 to 2</string>
   <string name="show_displayname">Display filename</string>
   <string name="show_displayname_tip">Instead of showing title of the songs, show their file-names everywhere</string>
+  <string name="song_list">Song list</string>
+  <string name="setting_list_desc">Display and tag options for the song list</string>
+  <string name="list_show_tag">Show tags in list</string>
+  <string name="list_show_tag_tip">Show each song\'s tags at the bottom of list items</string>
+  <string name="list_tag_manage">Tag manage button in list</string>
+  <string name="list_tag_manage_tip">Show a star button in each list item to manage its tags</string>
+  <string name="list_show_number">Show list number</string>
+  <string name="list_show_number_tip">Show the index number before each song name</string>
+  <string name="list_show_artist_album">Show artist and album</string>
+  <string name="list_show_artist_album_tip">Show the artist-album name below each song title</string>
   <string name="force_sort">Force sort</string>
   <string name="force_sort_tip">Force sort songs, albums, artists and playlists by Pinyin\nMay make load time much longer</string>
   <string name="accent_color">Accent color</string>

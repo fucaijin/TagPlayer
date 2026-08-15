@@ -152,6 +152,18 @@ object PrefKeys {
     /** 列表歌曲名是否取代为文件夹名 */
     const val SHOW_DISPLAYNAME = "show_displayname"
 
+    /** 歌曲列表条目是否显示标签 */
+    const val LIST_SHOW_TAG = "list_show_tag"
+
+    /** 歌曲列表条目是否显示标签管理按钮 */
+    const val LIST_TAG_MANAGE = "list_tag_manage"
+
+    /** 歌曲列表是否显示序号 */
+    const val LIST_SHOW_NUMBER = "list_show_number"
+
+    /** 歌曲列表是否显示艺术家-专辑名 */
+    const val LIST_SHOW_ARTIST_ALBUM = "list_show_artist_album"
+
     /** 专辑列表的显示模式 */
     const val MODE_FOR_ALBUM = "mode_for_album"
 

@@ -40,6 +40,10 @@ import remix.myplayer.ui.screen.setting.logic.cover.AutoDownloadLogic
 import remix.myplayer.ui.screen.setting.logic.cover.DownloadSourceLogic
 import remix.myplayer.ui.screen.setting.logic.cover.IgnoreMediaStoreLogic
 import remix.myplayer.ui.screen.setting.logic.library.LibraryLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListShowArtistAlbumLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListShowNumberLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListShowTagLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListTagManageLogic
 import remix.myplayer.ui.screen.setting.logic.lyric.DesktopLyricLogic
 import remix.myplayer.ui.screen.setting.logic.lyric.LyricPriorityLogic
 import remix.myplayer.ui.screen.setting.logic.lyric.StatusBarLyricLogic
@@ -104,6 +108,7 @@ fun SettingDetailScreen(categoryKey: String) {
           SettingCategory.Play -> PlayPreferenceItems()
           SettingCategory.Color -> ColorPreferenceItems()
           SettingCategory.Library -> LibraryPreferenceItems()
+          SettingCategory.List -> ListPreferenceItems()
           SettingCategory.PlayingScreen -> PlayingScreenPreferenceItems()
           SettingCategory.Cover -> CoverPreferenceItems()
           SettingCategory.Lyric -> LyricPreferenceItems()
@@ -157,6 +162,12 @@ private enum class SettingCategory(
     R.string.library,
     R.string.setting_library_desc,
     "library"
+  ),
+  List(
+    R.drawable.ic_library_music_24dp,
+    R.string.song_list,
+    R.string.setting_list_desc,
+    "list"
   ),
   PlayingScreen(
     R.drawable.ic_smart_display_24dp,
@@ -241,6 +252,17 @@ private fun ColorPreferenceItems() {
 @Composable
 private fun LibraryPreferenceItems() {
   LibraryLogic()
+}
+
+@Composable
+private fun ListPreferenceItems() {
+  ListShowTagLogic()
+
+  ListTagManageLogic()
+
+  ListShowNumberLogic()
+
+  ListShowArtistAlbumLogic()
 }
 
 @Composable

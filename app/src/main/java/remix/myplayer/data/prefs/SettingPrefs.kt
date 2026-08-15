@@ -122,6 +122,12 @@ class SettingPrefs @Inject constructor(
   var shake by PrefsDelegate(sp, PrefKeys.Setting.SHAKE, false)
   var showDisplayName by PrefsDelegate(sp, PrefKeys.Setting.SHOW_DISPLAYNAME, false)
 
+  // 歌曲列表相关开关
+  var listShowTag by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_TAG, true)
+  var listTagManage by PrefsDelegate(sp, PrefKeys.Setting.LIST_TAG_MANAGE, true)
+  var listShowNumber by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_NUMBER, true)
+  var listShowArtistAlbum by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_ARTIST_ALBUM, true)
+
   var ignoreAudioFocus by PrefsDelegate(sp, PrefKeys.Setting.AUDIO_FOCUS, false)
   var decoderMode by PrefsDelegate(
     sp,

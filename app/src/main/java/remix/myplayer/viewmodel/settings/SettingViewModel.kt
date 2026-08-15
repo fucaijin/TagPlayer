@@ -147,6 +147,12 @@ class SettingViewModel @Inject constructor(
     notification = NotificationSettings(
       classicNotify = settingPrefs.classicNotify,
       notifyUseSystemBackground = settingPrefs.notifyUseSystemBackground
+    ),
+    list = ListSettings(
+      showTag = settingPrefs.listShowTag,
+      tagManage = settingPrefs.listTagManage,
+      showNumber = settingPrefs.listShowNumber,
+      showArtistAlbum = settingPrefs.listShowArtistAlbum
     )
   )
 
@@ -453,6 +459,27 @@ class SettingViewModel @Inject constructor(
     _settingsState.update {
       it.copy(notification = it.notification.copy(notifyUseSystemBackground = enabled))
     }
+  }
+
+  // -------- List(歌曲列表) 分组 ----------
+  fun setListShowTag(enabled: Boolean) {
+    settingPrefs.listShowTag = enabled
+    _settingsState.update { it.copy(list = it.list.copy(showTag = enabled)) }
+  }
+
+  fun setListTagManage(enabled: Boolean) {
+    settingPrefs.listTagManage = enabled
+    _settingsState.update { it.copy(list = it.list.copy(tagManage = enabled)) }
+  }
+
+  fun setListShowNumber(enabled: Boolean) {
+    settingPrefs.listShowNumber = enabled
+    _settingsState.update { it.copy(list = it.list.copy(showNumber = enabled)) }
+  }
+
+  fun setListShowArtistAlbum(enabled: Boolean) {
+    settingPrefs.listShowArtistAlbum = enabled
+    _settingsState.update { it.copy(list = it.list.copy(showArtistAlbum = enabled)) }
   }
 
   private val _addSongToPlayListState =
