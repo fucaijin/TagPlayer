@@ -102,6 +102,18 @@ fun MultiSelectBar(
         }
       }
 
+      // 批量标签操作（添加到标签 / 从标签移除）
+      TooltipButton(R.string.tag_operation, R.drawable.ic_star_24dp, tintColor) {
+        scope.launch {
+          mainVM.closeMultiSelect()
+          val songs =
+            withContext(Dispatchers.IO) { libraryVM.loadSongsByModels(state.selectedModels) }
+          if (songs.isNotEmpty()) {
+            libraryVM.showBatchTagDialog(songs)
+          }
+        }
+      }
+
       if (state.where != MultiSelectState.Where.Genre) {
         TooltipButton(R.string.delete, R.drawable.ic_delete_black_24dp, tintColor) {
           mainVM.closeMultiSelect()

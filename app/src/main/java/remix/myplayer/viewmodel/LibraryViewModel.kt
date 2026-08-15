@@ -42,10 +42,14 @@ import remix.myplayer.repo.usecase.ExportPlayListUseCase
 import remix.myplayer.repo.usecase.PlayFromUriUseCase
 import remix.myplayer.service.MusicEventCallback
 import remix.myplayer.service.MusicService
+import remix.myplayer.ui.dialog.BatchTagState
 import remix.myplayer.ui.dialog.DialogState
+import remix.myplayer.ui.dialog.SongTagManageState
+import remix.myplayer.ui.dialog.TagManageState
 import remix.myplayer.ui.nav.MessageNotifier
 import remix.myplayer.util.PermissionUtil
 import remix.myplayer.util.ext.checkWorkerThread
+import remix.myplayer.util.ext.updateIf
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -76,6 +80,11 @@ class LibraryViewModel @Inject constructor(
   val songTags: StateFlow<Map<String, Set<String>>> =
     songTagRepo.tagsFlow()
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+  // 所有标签名（由 songTags 聚合）
+  val allTags: StateFlow<Set<String>> =
+    songTags.map { map -> map.values.flatten().toSet() }
+      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
   private val _albums = MutableStateFlow<List<Album>>(emptyList())
   val albums: StateFlow<List<Album>> = _albums.asStateFlow()
@@ -246,6 +255,145 @@ class LibraryViewModel @Inject constructor(
 
   fun clearHistory() = viewModelScope.launch {
     historyRepo.clear()
+  }
+
+  // -------- 单曲标签管理弹窗 ----------
+  private val _songTagManageState = MutableStateFlow(SongTagManageState())
+  val songTagManageState = _songTagManageState.asStateFlow()
+
+  fun showSongTagManageDialog(song: Song) {
+    _songTagManageState.updateIf(
+      condition = { !it.dialogState.isOpen },
+      transform = {
+        it.dialogState.show()
+        it.copy(song = song)
+      }
+    )
+  }
+
+  fun dismissSongTagManageDialog() {
+    _songTagManageState.update { state ->
+      state.dialogState.dismiss()
+      state.copy()
+    }
+  }
+
+  /** 将标签写入音频文件并关闭弹窗 */
+  fun saveSongTags(song: Song, tags: Set<String>) {
+    viewModelScope.launch {
+      songTagRepo.saveTags(song, tags)
+      dismissSongTagManageDialog()
+    }
+  }
+
+  // -------- 标签管理弹窗（过滤区齿轮） ----------
+  private val _tagManageState = MutableStateFlow(TagManageState())
+  val tagManageState = _tagManageState.asStateFlow()
+
+  fun showTagManageDialog() {
+    _tagManageState.updateIf(condition = { !it.dialogState.isOpen }) {
+      it.dialogState.show()
+      it
+    }
+  }
+
+  fun dismissTagManageDialog() {
+    _tagManageState.update { state ->
+      state.dialogState.dismiss()
+      state.copy()
+    }
+  }
+
+  /** 创建标签（标签只存在于歌曲上，创建后即可在批量添加中使用） */
+  fun createTag(name: String) {
+    val tag = name.trim()
+    if (tag.isEmpty()) return
+    if (tag in allTags.value) {
+      MessageNotifier.show(R.string.tag_exists)
+    } else {
+      MessageNotifier.show(R.string.tag_created, tag)
+    }
+  }
+
+  /** 重命名标签：将缓存中所有歌曲的旧标签替换为新标签 */
+  fun renameTag(oldTag: String, newTag: String) {
+    val old = oldTag.trim()
+    val new = newTag.trim()
+    if (old.isEmpty() || new.isEmpty() || old == new) return
+    viewModelScope.launch {
+      val tagMap = songTags.value
+      val songs = _songs.value.filter { song -> tagMap[song.data]?.contains(old) == true }
+      if (songs.isEmpty()) return@launch
+      val tagsByPath = songs.associate { song ->
+        song.data to ((tagMap[song.data] ?: emptySet()) - old + new)
+      }
+      val count = songTagRepo.saveTags(songs, tagsByPath)
+      if (count > 0) MessageNotifier.show(R.string.tag_renamed) else MessageNotifier.show(R.string.tag_rename_error)
+    }
+  }
+
+  /** 删除标签：从缓存中所有歌曲移除 */
+  fun deleteTag(name: String) {
+    val tag = name.trim()
+    if (tag.isEmpty()) return
+    viewModelScope.launch {
+      val tagMap = songTags.value
+      val songs = _songs.value.filter { song -> tagMap[song.data]?.contains(tag) == true }
+      if (songs.isEmpty()) return@launch
+      val tagsByPath = songs.associate { song ->
+        song.data to ((tagMap[song.data] ?: emptySet()) - tag)
+      }
+      val count = songTagRepo.saveTags(songs, tagsByPath)
+      if (count > 0) MessageNotifier.show(R.string.tag_batch_success, count)
+    }
+  }
+
+  // -------- 批量标签弹窗（歌曲多选后） ----------
+  private val _batchTagState = MutableStateFlow(BatchTagState())
+  val batchTagState = _batchTagState.asStateFlow()
+
+  fun showBatchTagDialog(songs: List<Song>) {
+    _batchTagState.updateIf(condition = { !it.dialogState.isOpen }) {
+      it.dialogState.show()
+      it.copy(songs = songs)
+    }
+  }
+
+  fun dismissBatchTagDialog() {
+    _batchTagState.update { state ->
+      state.dialogState.dismiss()
+      state.copy()
+    }
+  }
+
+  /** 给多首歌曲批量添加标签 */
+  fun addTagsToSongs(songs: List<Song>, tags: Set<String>) {
+    val valid = tags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    if (valid.isEmpty()) return
+    viewModelScope.launch {
+      val tagMap = songTags.value
+      val tagsByPath = songs.associate { song ->
+        song.data to ((tagMap[song.data] ?: emptySet()) + valid)
+      }
+      val count = songTagRepo.saveTags(songs, tagsByPath)
+      if (count > 0) MessageNotifier.show(R.string.tag_batch_success, count)
+      dismissBatchTagDialog()
+    }
+  }
+
+  /** 从多首歌曲批量移除标签 */
+  fun removeTagsFromSongs(songs: List<Song>, tags: Set<String>) {
+    val valid = tags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    if (valid.isEmpty()) return
+    viewModelScope.launch {
+      val tagMap = songTags.value
+      val tagsByPath = songs.associate { song ->
+        song.data to ((tagMap[song.data] ?: emptySet()) - valid)
+      }
+      val count = songTagRepo.saveTags(songs, tagsByPath)
+      if (count > 0) MessageNotifier.show(R.string.tag_batch_success, count)
+      dismissBatchTagDialog()
+    }
   }
 
   override fun onMediaStoreChanged() {

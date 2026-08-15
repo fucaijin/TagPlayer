@@ -20,4 +20,10 @@ fun DialogContainer() {
   InAppUpdateDialog()
 
   SongDetailDialog()
+
+  SongTagManageDialog()
+
+  TagManageDialog()
+
+  BatchTagDialog()
 }

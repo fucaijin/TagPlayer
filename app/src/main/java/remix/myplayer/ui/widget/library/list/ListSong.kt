@@ -1,5 +1,6 @@
 package remix.myplayer.ui.widget.library.list
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,17 +20,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import remix.myplayer.R
 import remix.myplayer.data.model.audio.APlayerModel
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.theme.highLightText
+import remix.myplayer.ui.theme.popupButton
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
 import remix.myplayer.ui.widget.library.GlideCover
 import remix.myplayer.ui.widget.popup.SongPopupButton
+import remix.myplayer.util.ext.clickWithRipple
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
@@ -43,6 +51,10 @@ fun ListSong(
   onClickSong: () -> Unit,
   onLongClickSong: () -> Unit,
   num: Int? = null,
+  showArtistAlbum: Boolean = true,
+  showTags: Boolean = false,
+  tags: Set<String> = emptySet(),
+  onManageTags: (() -> Unit)? = null,
 ) {
   val theme = LocalTheme.current
 
@@ -102,8 +114,34 @@ fun ListSong(
           .padding(start = 16.dp, end = 8.dp)
       ) {
         TextPrimary(song.showName)
-        Spacer(modifier = Modifier.height(4.dp))
-        TextSecondary(String.format("%s-%s", song.artist, song.album))
+        if (showArtistAlbum) {
+          Spacer(modifier = Modifier.height(4.dp))
+          TextSecondary(String.format("%s-%s", song.artist, song.album))
+        }
+        if (showTags && tags.isNotEmpty()) {
+          Spacer(modifier = Modifier.height(2.dp))
+          TextSecondary(
+            tags.joinToString(" ") { "#$it" },
+            fontSize = 12.sp
+          )
+        }
+      }
+
+      if (onManageTags != null) {
+        Box(
+          contentAlignment = Alignment.Center,
+          modifier = Modifier
+            .clickWithRipple {
+              onManageTags()
+            }
+            .size(dimensionResource(id = R.dimen.item_list_btn_size))
+        ) {
+          Image(
+            painter = painterResource(R.drawable.ic_star_24dp),
+            contentDescription = "manage tags",
+            colorFilter = ColorFilter.tint(LocalTheme.current.popupButton())
+          )
+        }
       }
 
       SongPopupButton(

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
@@ -41,7 +41,6 @@ import remix.myplayer.service.MusicService.Companion.EXTRA_COMMAND
 import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
-import remix.myplayer.ui.widget.library.GlideCover
 import remix.myplayer.util.Util
 import remix.myplayer.util.ext.clickableWithoutRipple
 import remix.myplayer.viewmodel.PlaybackViewModel
@@ -117,12 +116,6 @@ fun BottomBar(modifier: Modifier = Modifier, vm: PlaybackViewModel = playbackVie
       .then(interactionModifiers),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    GlideCover(
-      model = playbackState.song,
-      modifier = Modifier
-        .padding(start = 12.dp)
-        .size(48.dp)
-    )
     Column(
       verticalArrangement = Arrangement.Center,
       modifier = Modifier
@@ -141,6 +134,20 @@ fun BottomBar(modifier: Modifier = Modifier, vm: PlaybackViewModel = playbackVie
     ) {
       val buttonColor =
         Color((if (LocalTheme.current.isLight) "#323334" else "#FFFFFF").toColorInt())
+      Icon(
+        modifier = Modifier
+          .clickableWithoutRipple(interactionSource) {
+            Util.sendLocalBroadcast(
+              Intent(MusicService.ACTION_CMD)
+                .putExtra(EXTRA_COMMAND, Command.SKIP_TO_PREVIOUS)
+            )
+          }
+          .rotate(180f)
+          .padding(end = 16.dp),
+        painter = painterResource(R.drawable.bf_btn_next),
+        contentDescription = "Previous",
+        tint = buttonColor
+      )
       Icon(
         modifier = modifier
           .clickableWithoutRipple(interactionSource) {

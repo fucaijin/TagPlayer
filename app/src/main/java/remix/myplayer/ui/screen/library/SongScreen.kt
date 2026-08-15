@@ -9,7 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -19,6 +22,7 @@ import remix.myplayer.service.Command
 import remix.myplayer.service.MusicService
 import remix.myplayer.service.MusicServiceRemote.setPlayQueue
 import remix.myplayer.ui.widget.library.SongListHeader
+import remix.myplayer.ui.widget.library.TagFilterPanel
 import remix.myplayer.ui.widget.library.list.ListSong
 import remix.myplayer.util.MusicUtil
 import remix.myplayer.util.ext.verticalScrollbar
@@ -26,6 +30,7 @@ import remix.myplayer.viewmodel.MultiSelectState
 import remix.myplayer.viewmodel.libraryViewModel
 import remix.myplayer.viewmodel.mainViewModel
 import remix.myplayer.viewmodel.playbackViewModel
+import remix.myplayer.viewmodel.settingViewModel
 
 @Composable
 fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
@@ -34,10 +39,35 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
 
   val playbackState by playbackViewModel.playbackUiState.collectAsStateWithLifecycle()
   val multiSelectState by mainVM.multiSelectState.collectAsStateWithLifecycle()
+  val settingState by settingViewModel.settingsState.collectAsStateWithLifecycle()
+  val songTags by libraryVM.songTags.collectAsStateWithLifecycle()
+  val allTags by libraryVM.allTags.collectAsStateWithLifecycle()
   val listState = rememberLazyListState()
   val songs by libraryVM.songs.collectAsStateWithLifecycle()
   val context = LocalContext.current
   val popupEnabled = !multiSelectState.isShowInLibrary()
+
+  // 标签过滤区状态
+  var filterExpanded by rememberSaveable { mutableStateOf(false) }
+  var filterMatchAll by rememberSaveable { mutableStateOf(true) }
+  var filterSearchQuery by rememberSaveable { mutableStateOf("") }
+  var selectedFilterTags by remember { mutableStateOf(emptySet<String>()) }
+
+  // 根据所选标签过滤歌曲（与=全部包含 / 或=任一包含）
+  val filteredSongs = remember(songs, songTags, selectedFilterTags, filterMatchAll) {
+    if (selectedFilterTags.isEmpty()) {
+      songs
+    } else {
+      songs.filter { song ->
+        val tags = songTags[song.data] ?: emptySet()
+        if (filterMatchAll) {
+          selectedFilterTags.all { it in tags }
+        } else {
+          selectedFilterTags.any { it in tags }
+        }
+      }
+    }
+  }
 
   LaunchedEffect(scrollToCurrentEvent) {
     scrollToCurrentEvent?.collect {
@@ -49,6 +79,25 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
   }
 
   Column {
+    TagFilterPanel(
+      allTags = allTags,
+      selectedTags = selectedFilterTags,
+      matchAll = filterMatchAll,
+      searchQuery = filterSearchQuery,
+      expanded = filterExpanded,
+      onSearchQueryChange = { filterSearchQuery = it },
+      onMatchAllChange = { filterMatchAll = it },
+      onToggleTag = { tag ->
+        selectedFilterTags = if (tag in selectedFilterTags) {
+          selectedFilterTags - tag
+        } else {
+          selectedFilterTags + tag
+        }
+      },
+      onManageClick = { libraryVM.showTagManageDialog() },
+      onExpandChange = { filterExpanded = it }
+    )
+
     if (songs.isNotEmpty()) {
       SongListHeader(songs)
     }
@@ -65,7 +114,7 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
         .weight(1f)
         .verticalScrollbar(listState)
     ) {
-      itemsIndexed(songs, key = { _, song ->
+      itemsIndexed(filteredSongs, key = { _, song ->
         song.id
       }) { pos, song ->
         val selected = selectedIds.contains(song.getKey())
@@ -78,8 +127,17 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
           selected = selected,
           playing = isPlayingSong,
           popupEnabled = popupEnabled,
+          num = if (settingState.list.showNumber) pos + 1 else null,
+          showArtistAlbum = settingState.list.showArtistAlbum,
+          showTags = settingState.list.showTag,
+          tags = songTags[song.data] ?: emptySet(),
+          onManageTags = if (settingState.list.tagManage) {
+            { libraryVM.showSongTagManageDialog(song) }
+          } else {
+            null
+          },
           onClickSong = {
-            if (songs.isEmpty()) {
+            if (filteredSongs.isEmpty()) {
               return@ListSong
             }
 
@@ -89,7 +147,7 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
             }
 
             setPlayQueue(
-              songs, MusicUtil.makeCmdIntent(Command.PLAY_AT)
+              filteredSongs, MusicUtil.makeCmdIntent(Command.PLAY_AT)
                 .putExtra(MusicService.EXTRA_POSITION, pos)
             )
           },
