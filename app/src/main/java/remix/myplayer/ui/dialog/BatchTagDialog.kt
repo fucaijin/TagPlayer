@@ -29,6 +29,7 @@ import remix.myplayer.data.model.audio.Song
 import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
+import remix.myplayer.util.PermissionUtil
 import remix.myplayer.viewmodel.libraryViewModel
 
 /**
@@ -53,6 +54,8 @@ fun BatchTagDialog() {
 
   var selected by remember { mutableStateOf(emptySet<String>()) }
   var newTagText by remember { mutableStateOf("") }
+  // 批量写标签需要"所有文件访问"权限，未授权时先引导
+  val storageDialogState = rememberDialogState()
 
   LaunchedEffect(state.dialogState.isOpen) {
     if (state.dialogState.isOpen) {
@@ -68,11 +71,19 @@ fun BatchTagDialog() {
     onNegative = { libraryVM.dismissBatchTagDialog() },
     positiveRes = R.string.add_to_tag,
     onPositive = {
-      libraryVM.addTagsToSongs(state.songs, selected + newTagText.trim())
+      if (PermissionUtil.canWriteAudioFiles()) {
+        libraryVM.addTagsToSongs(state.songs, selected + newTagText.trim())
+      } else {
+        storageDialogState.show()
+      }
     },
     neutralRes = R.string.remove_from_tag,
     onNeutral = {
-      libraryVM.removeTagsFromSongs(state.songs, selected + newTagText.trim())
+      if (PermissionUtil.canWriteAudioFiles()) {
+        libraryVM.removeTagsFromSongs(state.songs, selected + newTagText.trim())
+      } else {
+        storageDialogState.show()
+      }
     },
     custom = {
       TextSecondary(stringResource(R.string.select_tag_tip), fontSize = 14.sp)
@@ -130,5 +141,10 @@ fun BatchTagDialog() {
         }
       }
     }
+  )
+
+  ManageStorageDialog(
+    dialogState = storageDialogState,
+    onCancel = { storageDialogState.dismiss() }
   )
 }

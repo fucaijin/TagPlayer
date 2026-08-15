@@ -23,6 +23,7 @@ import remix.myplayer.R
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.widget.common.TextSecondary
+import remix.myplayer.util.PermissionUtil
 import remix.myplayer.viewmodel.libraryViewModel
 
 /**
@@ -44,6 +45,8 @@ fun SongTagManageDialog() {
   val state by libraryVM.songTagManageState.collectAsStateWithLifecycle()
   val allTags by libraryVM.allTags.collectAsStateWithLifecycle()
   val song = state.song
+  // 写标签需要"所有文件访问"权限，未授权时先引导
+  val storageDialogState = rememberDialogState()
 
   var selected by remember(song) { mutableStateOf(emptySet<String>()) }
   LaunchedEffect(state.dialogState.isOpen) {
@@ -60,7 +63,11 @@ fun SongTagManageDialog() {
     onNegative = { libraryVM.dismissSongTagManageDialog() },
     onPositive = {
       if (song.valid()) {
-        libraryVM.saveSongTags(song, selected)
+        if (PermissionUtil.canWriteAudioFiles()) {
+          libraryVM.saveSongTags(song, selected)
+        } else {
+          storageDialogState.show()
+        }
       } else {
         libraryVM.dismissSongTagManageDialog()
       }
@@ -105,5 +112,10 @@ fun SongTagManageDialog() {
         }
       }
     }
+  )
+
+  ManageStorageDialog(
+    dialogState = storageDialogState,
+    onCancel = { storageDialogState.dismiss() }
   )
 }

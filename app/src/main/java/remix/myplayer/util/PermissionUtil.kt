@@ -31,6 +31,19 @@ object PermissionUtil {
     }
   }
 
+  /**
+   * 是否拥有修改公共目录音乐文件所需的写权限（写标签等操作需要）。
+   * Android 11+ 需要"所有文件访问"（MANAGE_EXTERNAL_STORAGE），
+   * Android 10 及以下需要 WRITE_EXTERNAL_STORAGE。
+   */
+  fun canWriteAudioFiles(): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      Environment.isExternalStorageManager()
+    } else {
+      has(Permission.WRITE_EXTERNAL_STORAGE)
+    }
+  }
+
   @RequiresApi(Build.VERSION_CODES.R)
   fun hasManageExternalStorage(): Boolean {
     return Environment.isExternalStorageManager()

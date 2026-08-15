@@ -21,6 +21,7 @@ import remix.myplayer.R
 import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
+import remix.myplayer.util.PermissionUtil
 import remix.myplayer.util.ext.clickWithRipple
 import remix.myplayer.viewmodel.libraryViewModel
 
@@ -51,6 +52,8 @@ fun TagManageDialog() {
   // 删除确认
   val deleteDialogState = rememberDialogState()
   var deleteTarget by remember { mutableStateOf<String?>(null) }
+  // 重命名/删除标签会批量写歌曲文件，需要"所有文件访问"权限
+  val storageDialogState = rememberDialogState()
 
   fun clearInputState() {
     creating = false
@@ -146,10 +149,14 @@ fun TagManageDialog() {
     onInput = { newName ->
       if (creating) {
         libraryVM.createTag(newName)
-      } else {
+        clearInputState()
+      } else if (PermissionUtil.canWriteAudioFiles()) {
         renameTarget?.let { libraryVM.renameTag(it, newName) }
+        clearInputState()
+      } else {
+        // 无写权限时保留输入框，引导去开启
+        storageDialogState.show()
       }
-      clearInputState()
     }
   )
 
@@ -161,7 +168,11 @@ fun TagManageDialog() {
       positive = stringResource(R.string.confirm),
       negative = stringResource(R.string.cancel),
       onPositive = {
-        libraryVM.deleteTag(target)
+        if (PermissionUtil.canWriteAudioFiles()) {
+          libraryVM.deleteTag(target)
+        } else {
+          storageDialogState.show()
+        }
         deleteTarget = null
       },
       onNegative = {
@@ -169,4 +180,9 @@ fun TagManageDialog() {
       }
     )
   }
+
+  ManageStorageDialog(
+    dialogState = storageDialogState,
+    onCancel = { storageDialogState.dismiss() }
+  )
 }

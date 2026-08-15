@@ -79,6 +79,9 @@
   <string name="input_new_tag_tip">Or enter a new tag name</string>
   <string name="tag_batch_success">Tags updated for %1$d songs</string>
   <string name="tag_operation">Tags</string>
+  <string name="need_manage_storage_title">Storage permission required</string>
+  <string name="need_manage_storage_content">Modifying music file tags requires the \"All files access\" permission. Please enable it in system settings.</string>
+  <string name="go_to_setting">Go to settings</string>
   <string name="confirm_delete_tag">Delete tag \"%1$s\"? It will be removed from all songs</string>
   <string name="new_playlist">Create new playlist</string>
   <string name="create">Create</string>

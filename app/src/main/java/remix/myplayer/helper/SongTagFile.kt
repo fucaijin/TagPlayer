@@ -26,7 +26,8 @@ object SongTagFile {
   fun writeTags(file: File, tags: Set<String>): Boolean {
     val metadata = AudioTagFile.readMetadata(file, readPictures = false) ?: return false
     val propertyMap = metadata.propertyMap
-    AudioTagFile.setValue(propertyMap, TAGS_KEY, tags.joinToString(SEPARATOR))
+    // 始终写入 AUDIO_TAGS（即使为空集也写入空值以清除文件中的旧标签）
+    propertyMap[TAGS_KEY] = arrayOf(tags.joinToString(SEPARATOR))
     return AudioTagFile.savePropertyMap(file, propertyMap)
   }
 

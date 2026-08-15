@@ -6,10 +6,12 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import remix.myplayer.App
 import remix.myplayer.data.db.room.AppDatabase
 import remix.myplayer.data.db.room.entity.SongTagCache
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.helper.SongTagFile
+import remix.myplayer.misc.MediaScanner
 import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
@@ -107,10 +109,22 @@ class SongTagRepository @Inject constructor(
             updateTime = System.currentTimeMillis()
           )
         )
+        // 写入完成后通知 MediaStore 重新扫描该文件。
+        // 否则 MediaProvider 可能在写入途中感知到文件变化并错误地把歌曲从媒体库移除。
+        rescanFile(song.data)
       } else {
         Timber.w("write tags failed: ${song.data}")
       }
       ok
+    }
+  }
+
+  /** 通知 MediaStore 重新扫描单个文件（写入完成后调用，避免中途被误判无效） */
+  private suspend fun rescanFile(path: String) {
+    try {
+      MediaScanner(App.context).scanSingleFile(App.context, File(path))
+    } catch (e: Exception) {
+      Timber.w(e, "rescan file failed: $path")
     }
   }
 
