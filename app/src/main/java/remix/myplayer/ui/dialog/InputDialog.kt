@@ -83,7 +83,7 @@ fun InputDialog(
         interactionSource = interactionSource,
         enabled = true,
         singleLine = false,
-        textStyle = TextStyle(fontSize = 15.sp)
+        textStyle = TextStyle(fontSize = 15.sp, color = theme.textPrimary)
       ) { innerTextField ->
         TextFieldDefaults.DecorationBox(
           value = text,

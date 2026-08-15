@@ -72,4 +72,10 @@ internal object DbMigrations {
       db.execSQL("CREATE TABLE IF NOT EXISTS `SongTagCache` (`path` TEXT NOT NULL, `tags` TEXT NOT NULL, `updateTime` INTEGER NOT NULL, PRIMARY KEY(`path`))")
     }
   }
+
+  val migration8to9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("CREATE TABLE IF NOT EXISTS `TagEntity` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)")
+    }
+  }
 }

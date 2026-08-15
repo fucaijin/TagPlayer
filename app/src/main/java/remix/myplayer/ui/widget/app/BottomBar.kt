@@ -142,8 +142,8 @@ fun BottomBar(modifier: Modifier = Modifier, vm: PlaybackViewModel = playbackVie
                 .putExtra(EXTRA_COMMAND, Command.SKIP_TO_PREVIOUS)
             )
           }
-          .rotate(180f)
-          .padding(end = 16.dp),
+          .padding(end = 16.dp)
+          .rotate(180f),
         painter = painterResource(R.drawable.bf_btn_next),
         contentDescription = "Previous",
         tint = buttonColor

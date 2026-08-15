@@ -28,11 +28,26 @@ class SongTagRepository @Inject constructor(
 
   private val cacheDao get() = database.songTagCacheDao()
 
+  private val tagDao get() = database.tagDao()
+
   /** 歌曲路径 -> 标签集合 的实时流，来自缓存表 */
   fun tagsFlow(): Flow<Map<String, Set<String>>> =
     cacheDao.observeAll().map { list ->
       list.associate { it.path to SongTagFile.parseTags(it.tags) }
     }
+
+  /** 用户手动创建的标签流（未绑定歌曲的孤立标签也会出现） */
+  fun knownTagsFlow(): Flow<Set<String>> =
+    tagDao.observeAll().map { list -> list.map { it.name }.toSet() }
+
+  /** 新建标签（同名已存在则忽略） */
+  suspend fun addKnownTag(name: String) = tagDao.insert(name)
+
+  /** 删除标签 */
+  suspend fun removeKnownTag(name: String) = tagDao.delete(name)
+
+  /** 重命名标签 */
+  suspend fun renameKnownTag(oldName: String, newName: String) = tagDao.rename(oldName, newName)
 
   /** 获取某首歌的标签，缓存未命中时直接读文件 */
   suspend fun tagsFor(path: String): Set<String> {

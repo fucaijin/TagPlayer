@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -81,9 +82,11 @@ class LibraryViewModel @Inject constructor(
     songTagRepo.tagsFlow()
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-  // 所有标签名（由 songTags 聚合）
+  // 所有标签名（歌曲缓存标签 ∪ 手动创建的标签）
   val allTags: StateFlow<Set<String>> =
-    songTags.map { map -> map.values.flatten().toSet() }
+    combine(songTags, songTagRepo.knownTagsFlow()) { tagMap, knownTags ->
+      tagMap.values.flatten().toSet() + knownTags
+    }
       .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
   private val _albums = MutableStateFlow<List<Album>>(emptyList())
@@ -304,23 +307,27 @@ class LibraryViewModel @Inject constructor(
     }
   }
 
-  /** 创建标签（标签只存在于歌曲上，创建后即可在批量添加中使用） */
+  /** 创建标签（写入标签表，未绑定歌曲前也会在管理/过滤区显示） */
   fun createTag(name: String) {
     val tag = name.trim()
     if (tag.isEmpty()) return
     if (tag in allTags.value) {
       MessageNotifier.show(R.string.tag_exists)
     } else {
-      MessageNotifier.show(R.string.tag_created, tag)
+      viewModelScope.launch {
+        songTagRepo.addKnownTag(tag)
+        MessageNotifier.show(R.string.tag_created, tag)
+      }
     }
   }
 
-  /** 重命名标签：将缓存中所有歌曲的旧标签替换为新标签 */
+  /** 重命名标签：更新标签表并批量更新所有含该标签的歌曲 */
   fun renameTag(oldTag: String, newTag: String) {
     val old = oldTag.trim()
     val new = newTag.trim()
     if (old.isEmpty() || new.isEmpty() || old == new) return
     viewModelScope.launch {
+      songTagRepo.renameKnownTag(old, new)
       val tagMap = songTags.value
       val songs = _songs.value.filter { song -> tagMap[song.data]?.contains(old) == true }
       if (songs.isEmpty()) return@launch
@@ -332,11 +339,12 @@ class LibraryViewModel @Inject constructor(
     }
   }
 
-  /** 删除标签：从缓存中所有歌曲移除 */
+  /** 删除标签：从标签表和所有歌曲中移除 */
   fun deleteTag(name: String) {
     val tag = name.trim()
     if (tag.isEmpty()) return
     viewModelScope.launch {
+      songTagRepo.removeKnownTag(tag)
       val tagMap = songTags.value
       val songs = _songs.value.filter { song -> tagMap[song.data]?.contains(tag) == true }
       if (songs.isEmpty()) return@launch
