@@ -105,3 +105,7 @@
 
 # 修复Android5.0 VerifyError
 -keepclassmembers class androidx.compose.ui.platform.** { *; }
+
+# jaudiotagger 2.0.1：Mp4AtomTree（调试用 Swing 树）引用 Android 上不存在的 javax.swing.tree.*
+# R8 full mode 下缺失类会报 "Missing classes detected" 错误，用 -dontwarn 抑制（该代码路径运行时不会被调用）
+-dontwarn javax.swing.**

@@ -41,7 +41,7 @@ android {
     ndkVersion = "25.2.9519653"
 
     defaultConfig {
-        applicationId = "remix.myplayer.fcjchange"
+        applicationId = "remix.myplayer.fcj"
         minSdk = 21
         targetSdk = 35
 
@@ -104,10 +104,26 @@ android {
         }
 
         create("releaseConfig") {
-            storeFile = File(properties.getProperty("keystore.storeFile") ?: "")
-            storePassword = properties.getProperty("keystore.storePassword")
-            keyAlias = properties.getProperty("keystore.keyAlias")
-            keyPassword = properties.getProperty("keystore.keyPassword")
+            // local.properties 未配置正式证书时（keystore.* 缺失），回退用 debug 证书，保证 release 包可构建安装
+            val keystorePath = properties.getProperty("keystore.storeFile")
+            val keystorePassword = properties.getProperty("keystore.storePassword")
+            val keystoreKeyAlias = properties.getProperty("keystore.keyAlias")
+            val keystoreKeyPassword = properties.getProperty("keystore.keyPassword")
+            if (!keystorePath.isNullOrEmpty() &&
+                !keystorePassword.isNullOrEmpty() &&
+                !keystoreKeyAlias.isNullOrEmpty() &&
+                !keystoreKeyPassword.isNullOrEmpty()
+            ) {
+                storeFile = File(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keystoreKeyAlias
+                keyPassword = keystoreKeyPassword
+            } else {
+                storeFile = project.file("Debug.jks")
+                storePassword = "123456"
+                keyAlias = "Debug"
+                keyPassword = "123456"
+            }
 
             enableV1Signing = true
             enableV2Signing = true
