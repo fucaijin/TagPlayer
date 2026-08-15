@@ -761,6 +761,34 @@ class MusicService : BaseService(),
   }
 
   /**
+   * 将播放队列替换为 newQueue，并尽量保持当前歌曲继续播放（不跳歌）。
+   * 用于标签过滤后，让后续播放（下一首/顺序/随机/单曲循环）都基于过滤后的列表。
+   * 若当前歌曲不在新队列中，则不改动队列，避免打断当前播放。
+   */
+  fun setPlayQueueKeepCurrent(newQueue: List<Song>?) {
+    if (newQueue.isNullOrEmpty()) {
+      return
+    }
+    if (newQueue == playback.getPlaylist()) {
+      return
+    }
+
+    val current = playback.currentSong
+    val index = current?.let { song ->
+      newQueue.indexOfFirst { it.id == song.id }
+    } ?: -1
+    if (index == -1) {
+      // 当前歌曲不在新队列中，不打断当前播放
+      return
+    }
+
+    // 以当前歌曲为起点重建队列，并保留当前播放进度
+    playback.setPlaylist(newQueue, index, playback.position)
+    updateMediaSessionQueue()
+    launch { playQueueStore.save(newQueue) }
+  }
+
+  /**
    * 从播放队列移除歌曲并保存
    */
   fun removeFromQueue(ids: List<Long>) {

@@ -87,6 +87,10 @@ object MusicServiceRemote {
     service?.setPlayQueue(newQueues, intent)
   }
 
+  fun setPlayQueueKeepCurrent(newQueue: List<Song>) {
+    service?.setPlayQueueKeepCurrent(newQueue)
+  }
+
   fun removeFromQueue(ids: List<Long>) {
     service?.removeFromQueue(ids)
   }

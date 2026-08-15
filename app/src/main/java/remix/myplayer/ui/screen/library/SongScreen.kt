@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import remix.myplayer.service.Command
 import remix.myplayer.service.MusicService
 import remix.myplayer.service.MusicServiceRemote.setPlayQueue
+import remix.myplayer.service.MusicServiceRemote.setPlayQueueKeepCurrent
 import remix.myplayer.ui.widget.library.SongListHeader
 import remix.myplayer.ui.widget.library.TagFilterPanel
 import remix.myplayer.ui.widget.library.list.ListSong
@@ -69,6 +70,27 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
     }
   }
 
+  // 标签过滤变化后，将过滤结果同步为播放队列（保持当前歌曲不中断播放），
+  // 这样后续的下一首/顺序/随机/单曲循环都以过滤后的列表为播放列表。
+  var lastFilter by remember { mutableStateOf<Pair<Set<String>, Boolean>?>(null) }
+  LaunchedEffect(selectedFilterTags, filterMatchAll) {
+    val currentFilter = selectedFilterTags to filterMatchAll
+    val previous = lastFilter
+    lastFilter = currentFilter
+    // 首次组合不触发，避免覆盖恢复/已有的播放队列
+    if (previous == null) {
+      return@LaunchedEffect
+    }
+    // 仅在“有标签过滤”或“从有过滤变为取消全部标签”时同步队列；
+    // 无标签时单纯切换“与/或”不改变列表，无需同步
+    if (selectedFilterTags.isEmpty() && previous.first.isEmpty()) {
+      return@LaunchedEffect
+    }
+    if (filteredSongs.isNotEmpty()) {
+      setPlayQueueKeepCurrent(filteredSongs)
+    }
+  }
+
   LaunchedEffect(scrollToCurrentEvent) {
     scrollToCurrentEvent?.collect {
       val index = libraryVM.songs.value.indexOfFirst { it.id == playbackState.song.id }
@@ -98,8 +120,8 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
       onExpandChange = { filterExpanded = it }
     )
 
-    if (songs.isNotEmpty()) {
-      SongListHeader(songs)
+    if (filteredSongs.isNotEmpty()) {
+      SongListHeader(filteredSongs)
     }
 
     val selectedIds by remember {
