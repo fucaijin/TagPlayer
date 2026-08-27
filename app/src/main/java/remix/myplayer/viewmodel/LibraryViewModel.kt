@@ -281,11 +281,16 @@ class LibraryViewModel @Inject constructor(
     }
   }
 
-  /** 将标签写入音频文件并关闭弹窗 */
+  /** 将标签写入音频文件并关闭弹窗；成功 toast，失败弹窗显示原因 */
   fun saveSongTags(song: Song, tags: Set<String>) {
     viewModelScope.launch {
-      songTagRepo.saveTags(song, tags)
+      val result = songTagRepo.saveTags(song, tags)
       dismissSongTagManageDialog()
+      result.onSuccess {
+        MessageNotifier.show(R.string.tag_save_success)
+      }.onFailure { e ->
+        reportTagError(listOf(song to e))
+      }
     }
   }
 
@@ -330,12 +335,20 @@ class LibraryViewModel @Inject constructor(
       songTagRepo.renameKnownTag(old, new)
       val tagMap = songTags.value
       val songs = _songs.value.filter { song -> tagMap[song.data]?.contains(old) == true }
-      if (songs.isEmpty()) return@launch
+      if (songs.isEmpty()) {
+        MessageNotifier.show(R.string.tag_renamed)
+        return@launch
+      }
       val tagsByPath = songs.associate { song ->
         song.data to ((tagMap[song.data] ?: emptySet()) - old + new)
       }
-      val count = songTagRepo.saveTags(songs, tagsByPath)
-      if (count > 0) MessageNotifier.show(R.string.tag_renamed) else MessageNotifier.show(R.string.tag_rename_error)
+      val failures = songTagRepo.saveTags(songs, tagsByPath)
+      if (failures.isEmpty()) {
+        MessageNotifier.show(R.string.tag_renamed)
+      } else {
+        MessageNotifier.show(R.string.tag_rename_error)
+        reportTagError(failures)
+      }
     }
   }
 
@@ -347,12 +360,20 @@ class LibraryViewModel @Inject constructor(
       songTagRepo.removeKnownTag(tag)
       val tagMap = songTags.value
       val songs = _songs.value.filter { song -> tagMap[song.data]?.contains(tag) == true }
-      if (songs.isEmpty()) return@launch
+      if (songs.isEmpty()) {
+        MessageNotifier.show(R.string.tag_deleted)
+        return@launch
+      }
       val tagsByPath = songs.associate { song ->
         song.data to ((tagMap[song.data] ?: emptySet()) - tag)
       }
-      val count = songTagRepo.saveTags(songs, tagsByPath)
-      if (count > 0) MessageNotifier.show(R.string.tag_batch_success, count)
+      val failures = songTagRepo.saveTags(songs, tagsByPath)
+      if (failures.isEmpty()) {
+        MessageNotifier.show(R.string.tag_deleted)
+      } else {
+        MessageNotifier.show(R.string.tag_delete_error)
+        reportTagError(failures)
+      }
     }
   }
 
@@ -383,9 +404,18 @@ class LibraryViewModel @Inject constructor(
       val tagsByPath = songs.associate { song ->
         song.data to ((tagMap[song.data] ?: emptySet()) + valid)
       }
-      val count = songTagRepo.saveTags(songs, tagsByPath)
-      if (count > 0) MessageNotifier.show(R.string.tag_batch_success, count)
+      val failures = songTagRepo.saveTags(songs, tagsByPath)
       dismissBatchTagDialog()
+      if (failures.isEmpty()) {
+        MessageNotifier.show(R.string.tag_batch_success, songs.size)
+      } else {
+        MessageNotifier.show(
+          R.string.tag_batch_partial_fail,
+          songs.size - failures.size,
+          failures.size
+        )
+        reportTagError(failures)
+      }
     }
   }
 
@@ -398,9 +428,44 @@ class LibraryViewModel @Inject constructor(
       val tagsByPath = songs.associate { song ->
         song.data to ((tagMap[song.data] ?: emptySet()) - valid)
       }
-      val count = songTagRepo.saveTags(songs, tagsByPath)
-      if (count > 0) MessageNotifier.show(R.string.tag_batch_success, count)
+      val failures = songTagRepo.saveTags(songs, tagsByPath)
       dismissBatchTagDialog()
+      if (failures.isEmpty()) {
+        MessageNotifier.show(R.string.tag_batch_success, songs.size)
+      } else {
+        MessageNotifier.show(
+          R.string.tag_batch_partial_fail,
+          songs.size - failures.size,
+          failures.size
+        )
+        reportTagError(failures)
+      }
+    }
+  }
+
+  // -------- 标签写入失败反馈（失败弹窗 + 日志） ----------
+  private val _tagErrorState = MutableStateFlow(TagErrorState())
+  val tagErrorState = _tagErrorState.asStateFlow()
+
+  fun dismissTagError() {
+    _tagErrorState.update { state ->
+      state.dialogState.dismiss()
+      state.copy()
+    }
+  }
+
+  /** 标签写入失败：记录到日志文件（LogTree 同时写 logcat 与日志文件）并弹出原因弹窗 */
+  private fun reportTagError(failures: List<Pair<Song, Throwable>>) {
+    if (failures.isEmpty()) return
+    val detail = failures.joinToString("\n\n") { (song, e) ->
+      "${song.data}\n${e.stackTraceToString()}"
+    }
+    failures.forEach { (song, e) ->
+      Timber.e(e, "write tags failed: ${song.data}")
+    }
+    _tagErrorState.updateIf(condition = { !it.dialogState.isOpen }) {
+      it.dialogState.show()
+      it.copy(message = detail)
     }
   }
 
@@ -436,4 +501,10 @@ class LibraryViewModel @Inject constructor(
 data class CreatePlaylistState(
   val dialogState: DialogState = DialogState(),
   val name: String = ""
+)
+
+/** 标签写入失败弹窗状态 */
+data class TagErrorState(
+  val dialogState: DialogState = DialogState(),
+  val message: String = ""
 )

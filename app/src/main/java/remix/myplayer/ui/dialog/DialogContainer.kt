@@ -26,4 +26,6 @@ fun DialogContainer() {
   TagManageDialog()
 
   BatchTagDialog()
+
+  TagErrorDialog()
 }

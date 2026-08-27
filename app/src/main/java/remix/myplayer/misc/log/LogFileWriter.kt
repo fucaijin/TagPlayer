@@ -7,6 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import remix.myplayer.util.ext.zipFrom
+import remix.myplayer.util.ext.zipOutputStream
 import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
@@ -88,6 +90,29 @@ object LogFileWriter {
     } catch (e: Exception) {
       Log.e("LogFileWritter", "Failed to write log to file", e)
     }
+  }
+
+  /** 清空日志目录下的所有日志文件 */
+  fun clearLogs(): Boolean {
+    val dir = logDir ?: return false
+    if (!dir.exists()) return true
+    return runCatching {
+      dir.listFiles { _, name -> logFileNameRegex.matches(name) }?.forEach { it.delete() }
+    }.isSuccess
+  }
+
+  /** 将日志目录打包为 zip 文件（存放于 cacheDir），返回 zip 文件；无日志或失败时返回 null */
+  fun exportZip(context: Context): File? {
+    val dir = getLogDir(context)
+    if (!dir.exists() || dir.listFiles()?.isEmpty() == true) return null
+    return runCatching {
+      val nameFormat = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US)
+      val zipFile = File(context.cacheDir, "logs-${nameFormat.format(Date())}.zip")
+      zipFile.delete()
+      zipFile.createNewFile()
+      zipFile.zipOutputStream().zipFrom(dir.absolutePath)
+      zipFile
+    }.getOrNull()
   }
 
   private val START_TIME = System.currentTimeMillis()

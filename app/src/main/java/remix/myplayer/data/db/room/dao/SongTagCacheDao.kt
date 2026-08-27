@@ -22,6 +22,9 @@ abstract class SongTagCacheDao {
   @Query("SELECT tags FROM SongTagCache WHERE path = :path")
   abstract suspend fun getTags(path: String): String?
 
+  @Query("SELECT * FROM SongTagCache WHERE path = :path")
+  abstract suspend fun getByPath(path: String): SongTagCache?
+
   @Insert(onConflict = OnConflictStrategy.REPLACE)
   abstract suspend fun upsert(cache: SongTagCache)
 

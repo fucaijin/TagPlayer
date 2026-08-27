@@ -51,14 +51,16 @@ class SongTagRepository @Inject constructor(
   /** 重命名标签 */
   suspend fun renameKnownTag(oldName: String, newName: String) = tagDao.rename(oldName, newName)
 
-  /** 获取某首歌的标签，缓存未命中时直接读文件 */
+  /** 获取某首歌的标签，缓存未命中或音频文件比缓存新时直接读文件 */
   suspend fun tagsFor(path: String): Set<String> {
-    val cached = cacheDao.getTags(path)
-    if (cached != null) {
-      return SongTagFile.parseTags(cached)
+    val cached = cacheDao.getByPath(path)
+    // 音频文件被修改（如其他应用写了标签）但缓存未更新时，直接读文件
+    val fileNewer = cached != null &&
+      runCatching { File(path).lastModified() }.getOrDefault(0L).let { it > 0 && cached.updateTime < it }
+    if (cached == null || fileNewer) {
+      return runCatching { SongTagFile.readTags(File(path)) }.getOrDefault(emptySet())
     }
-    // 缓存未命中时回退读文件
-    return runCatching { SongTagFile.readTags(File(path)) }.getOrDefault(emptySet())
+    return SongTagFile.parseTags(cached.tags)
   }
 
   /** 所有标签名 */
@@ -71,10 +73,21 @@ class SongTagRepository @Inject constructor(
     if (localSongs.isEmpty()) return
 
     val existing = cacheDao.getAll().associate { it.path to it.updateTime }
-    // 只扫描缓存缺失或文件被修改过的歌曲
+    // 只扫描缓存缺失或文件被修改过的歌曲。
+    // MediaStore 的 date_modified 在文件被其他应用直接改写后可能不刷新（如 A/B 两个应用互写标签），
+    // 因此以磁盘文件的 lastModified 为准，确保能感知标签变化；拿不到文件时间再回退 MediaStore。
     val toScan = localSongs.filter { song ->
       val cachedTime = existing[song.data]
-      cachedTime == null || song.dateModified <= 0 || cachedTime < song.dateModified * 1000L
+      if (cachedTime == null) {
+        true
+      } else {
+        val fileTime = runCatching { File(song.data).lastModified() }.getOrDefault(0L)
+        if (fileTime > 0) {
+          cachedTime < fileTime
+        } else {
+          song.dateModified > 0 && cachedTime < song.dateModified * 1000L
+        }
+      }
     }
     if (toScan.isEmpty()) return
 
@@ -96,12 +109,15 @@ class SongTagRepository @Inject constructor(
     }
   }
 
-  /** 将标签写入音频文件并更新缓存，返回是否成功 */
-  suspend fun saveTags(song: Song, tags: Set<String>): Boolean {
-    if (!song.isLocal() || !song.valid()) return false
+  /** 将标签写入音频文件并更新缓存，返回写入结果 */
+  suspend fun saveTags(song: Song, tags: Set<String>): Result<Unit> {
+    if (!song.isLocal() || !song.valid()) {
+      return Result.failure(IllegalStateException("Not a valid local song: ${song.data}"))
+    }
     return withContext(Dispatchers.IO) {
-      val ok = runCatching { SongTagFile.writeTags(File(song.data), tags) }.getOrDefault(false)
-      if (ok) {
+      runCatching {
+        val ok = SongTagFile.writeTags(File(song.data), tags)
+        check(ok) { "Failed to write tags to file: ${song.data}" }
         cacheDao.upsert(
           SongTagCache(
             path = song.data,
@@ -112,10 +128,7 @@ class SongTagRepository @Inject constructor(
         // 写入完成后通知 MediaStore 重新扫描该文件。
         // 否则 MediaProvider 可能在写入途中感知到文件变化并错误地把歌曲从媒体库移除。
         rescanFile(song.data)
-      } else {
-        Timber.w("write tags failed: ${song.data}")
       }
-      ok
     }
   }
 
@@ -128,16 +141,14 @@ class SongTagRepository @Inject constructor(
     }
   }
 
-  /** 批量保存多首歌曲的标签，返回成功数量 */
-  suspend fun saveTags(songs: List<Song>, tagsByPath: Map<String, Set<String>>): Int {
-    var count = 0
+  /** 批量保存多首歌曲的标签，返回各歌曲写入失败的原因（空列表表示全部成功） */
+  suspend fun saveTags(songs: List<Song>, tagsByPath: Map<String, Set<String>>): List<Pair<Song, Throwable>> {
+    val failures = mutableListOf<Pair<Song, Throwable>>()
     for (song in songs) {
       val tags = tagsByPath[song.data] ?: continue
-      if (saveTags(song, tags)) {
-        count++
-      }
+      saveTags(song, tags).onFailure { failures += song to it }
     }
-    return count
+    return failures
   }
 
   private fun scanSong(song: Song): SongTagCache? {

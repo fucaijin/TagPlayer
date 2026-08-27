@@ -51,6 +51,8 @@ import remix.myplayer.ui.screen.setting.logic.lyric.TranslationLogic
 import remix.myplayer.ui.screen.setting.logic.notification.ClassicNotifyLogic
 import remix.myplayer.ui.screen.setting.logic.notification.NotifyBackgroundLogic
 import remix.myplayer.ui.screen.setting.logic.other.ClearCacheLogic
+import remix.myplayer.ui.screen.setting.logic.other.ClearLogLogic
+import remix.myplayer.ui.screen.setting.logic.other.ExportLogLogic
 import remix.myplayer.ui.screen.setting.logic.play.AutoPlayLogic
 import remix.myplayer.ui.screen.setting.logic.play.DecoderModeLogic
 import remix.myplayer.ui.screen.setting.logic.play.IgnoreAudioFocusLogic
@@ -326,4 +328,8 @@ private fun OtherPreferenceItems() {
   }
 
   ClearCacheLogic()
+
+  ExportLogLogic()
+
+  ClearLogLogic()
 }
