@@ -43,6 +43,7 @@ import remix.myplayer.repo.usecase.ExportPlayListUseCase
 import remix.myplayer.repo.usecase.PlayFromUriUseCase
 import remix.myplayer.service.MusicEventCallback
 import remix.myplayer.service.MusicService
+import remix.myplayer.service.MusicServiceRemote
 import remix.myplayer.ui.dialog.BatchTagState
 import remix.myplayer.ui.dialog.DialogState
 import remix.myplayer.ui.dialog.SongTagManageState
@@ -288,9 +289,23 @@ class LibraryViewModel @Inject constructor(
       dismissSongTagManageDialog()
       result.onSuccess {
         MessageNotifier.show(R.string.tag_save_success)
+        syncPlayQueueAfterTagSave()
       }.onFailure { e ->
         reportTagError(listOf(song to e))
       }
+    }
+  }
+
+  /**
+   * 打标签保存后调用：MediaStore 重扫音频文件可能给歌曲重新分配 _id，
+   * 用最新歌曲列表（按路径匹配）重建播放队列，避免当前播放歌曲的高亮丢失、
+   * 以及上一首/下一首切回该歌时因旧 id 不存在而播放失败。
+   */
+  private fun syncPlayQueueAfterTagSave() {
+    viewModelScope.launch {
+      val freshSongs = withContext(Dispatchers.IO) { songRepo.allSongs() }
+      _songs.value = freshSongs
+      MusicServiceRemote.reconcilePlayQueue(freshSongs)
     }
   }
 
@@ -349,6 +364,8 @@ class LibraryViewModel @Inject constructor(
         MessageNotifier.show(R.string.tag_rename_error)
         reportTagError(failures)
       }
+      // 重写文件触发 MediaStore 重扫，歌曲 id 可能变化，同步播放队列
+      syncPlayQueueAfterTagSave()
     }
   }
 
@@ -374,6 +391,8 @@ class LibraryViewModel @Inject constructor(
         MessageNotifier.show(R.string.tag_delete_error)
         reportTagError(failures)
       }
+      // 重写文件触发 MediaStore 重扫，歌曲 id 可能变化，同步播放队列
+      syncPlayQueueAfterTagSave()
     }
   }
 
@@ -416,6 +435,8 @@ class LibraryViewModel @Inject constructor(
         )
         reportTagError(failures)
       }
+      // 重写文件触发 MediaStore 重扫，歌曲 id 可能变化，同步播放队列
+      syncPlayQueueAfterTagSave()
     }
   }
 
@@ -440,6 +461,8 @@ class LibraryViewModel @Inject constructor(
         )
         reportTagError(failures)
       }
+      // 重写文件触发 MediaStore 重扫，歌曲 id 可能变化，同步播放队列
+      syncPlayQueueAfterTagSave()
     }
   }
 

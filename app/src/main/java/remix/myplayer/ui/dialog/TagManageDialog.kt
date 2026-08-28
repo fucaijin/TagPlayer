@@ -1,10 +1,10 @@
 package remix.myplayer.ui.dialog
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -89,8 +89,9 @@ fun TagManageDialog() {
       if (allTags.isEmpty()) {
         TextSecondary(stringResource(R.string.no_tag), fontSize = 14.sp)
       } else {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-          allTags.forEach { tag ->
+        // 标签较多时可滚动，避免超出弹窗显示范围
+        LazyColumn(modifier = Modifier.weight(1f, false)) {
+          items(allTags.toList()) { tag ->
             Row(
               modifier = Modifier
                 .fillMaxWidth()

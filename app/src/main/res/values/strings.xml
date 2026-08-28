@@ -67,7 +67,7 @@
   <string name="tag_manage">Manage tags</string>
   <string name="create_tag">Create tag</string>
   <string name="rename_tag">Rename</string>
-  <string name="delete_tag">Delete tag</string>
+  <string name="delete_tag">Delete</string>
   <string name="input_tag_name">Enter tag name</string>
   <string name="tag_exists">Tag already exists</string>
   <string name="tag_created">Tag %1$s created</string>

@@ -789,6 +789,48 @@ class MusicService : BaseService(),
   }
 
   /**
+   * 用最新歌曲列表（按文件路径匹配）重建播放队列。
+   *
+   * 打标签时会通过 MediaScanner 重扫音频文件，MediaProvider 可能把歌曲从媒体库移除后重新插入，
+   * 导致该歌曲的 MediaStore _id 变化。旧队列里还是旧 id 的 Song 对象，会导致：
+   * - 歌曲列表高亮丢失（列表已变成新 id，而 playbackState 仍是旧 id）；
+   * - 上一首/下一首切到该歌时报 ERROR_CODE_IO_FILE_NOT_FOUND（content uri 指向已不存在的旧 id）。
+   *
+   * 这里把队列中每个文件路径能在 freshSongs 中找到的歌曲替换为新对象（新 id），
+   * 并保持当前歌曲的播放位置不变。
+   */
+  fun reconcilePlayQueue(freshSongs: List<Song>) {
+    if (freshSongs.isEmpty()) {
+      return
+    }
+    val currentQueue = playback.getPlaylist()
+    if (currentQueue.isEmpty()) {
+      return
+    }
+
+    val byPath = freshSongs.associateBy { it.data }
+    val reconciled = currentQueue.map { old -> byPath[old.data] ?: old }
+    // 没有任何歌曲被替换（例如 MediaStore 没有重新分配 id），无需重建队列
+    if (reconciled == currentQueue) {
+      return
+    }
+
+    val currentPath = playback.currentSong?.data
+    val newIndex = currentPath?.let { path ->
+      reconciled.indexOfFirst { it.data == path }
+    } ?: -1
+    if (newIndex == -1) {
+      // 当前歌曲在新列表中不存在（文件可能已被删除），仅替换队列但不改变播放位置
+      playback.setPlaylist(reconciled)
+    } else {
+      playback.setPlaylist(reconciled, newIndex, playback.position)
+    }
+    updateMediaSessionQueue()
+    launch { playQueueStore.save(reconciled) }
+    pushPlaybackUiState()
+  }
+
+  /**
    * 从播放队列移除歌曲并保存
    */
   fun removeFromQueue(ids: List<Long>) {

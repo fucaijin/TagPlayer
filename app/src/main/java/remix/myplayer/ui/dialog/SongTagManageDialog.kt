@@ -2,9 +2,12 @@ package remix.myplayer.ui.dialog
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -76,37 +79,44 @@ fun SongTagManageDialog() {
       if (allTags.isEmpty()) {
         TextSecondary(stringResource(R.string.no_tag))
       } else {
-        FlowRow(
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-          modifier = Modifier.padding(top = 8.dp)
+        // 标签较多时可滚动，避免超出弹窗显示范围
+        Column(
+          modifier = Modifier
+            .weight(1f, false)
+            .verticalScroll(rememberScrollState())
         ) {
-          allTags.forEach { tag ->
-            val isSelected = tag in selected
-            Surface(
-              shape = RoundedCornerShape(50),
-              color = if (isSelected) LocalTheme.current.secondary else LocalTheme.current.mainBackground,
-              border = BorderStroke(
-                width = 1.dp,
-                color = if (isSelected) {
-                  LocalTheme.current.secondary
-                } else {
-                  LocalTheme.current.textSecondary.copy(alpha = 0.5f)
+          FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 8.dp)
+          ) {
+            allTags.forEach { tag ->
+              val isSelected = tag in selected
+              Surface(
+                shape = RoundedCornerShape(50),
+                color = if (isSelected) LocalTheme.current.secondary else LocalTheme.current.mainBackground,
+                border = BorderStroke(
+                  width = 1.dp,
+                  color = if (isSelected) {
+                    LocalTheme.current.secondary
+                  } else {
+                    LocalTheme.current.textSecondary.copy(alpha = 0.5f)
+                  }
+                ),
+                onClick = {
+                  selected = if (isSelected) selected - tag else selected + tag
                 }
-              ),
-              onClick = {
-                selected = if (isSelected) selected - tag else selected + tag
+              ) {
+                Text(
+                  text = tag,
+                  fontSize = 14.sp,
+                  modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                  color = if (isSelected) {
+                    LocalTheme.current.primaryReverse
+                  } else {
+                    LocalTheme.current.textPrimary
+                  }
+                )
               }
-            ) {
-              Text(
-                text = tag,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                color = if (isSelected) {
-                  LocalTheme.current.primaryReverse
-                } else {
-                  LocalTheme.current.textPrimary
-                }
-              )
             }
           }
         }

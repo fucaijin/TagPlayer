@@ -66,7 +66,7 @@
   <string name="tag_manage">标签管理</string>
   <string name="create_tag">新建标签</string>
   <string name="rename_tag">重命名</string>
-  <string name="delete_tag">删除标签</string>
+  <string name="delete_tag">删除</string>
   <string name="input_tag_name">请输入标签名</string>
   <string name="tag_exists">标签已存在</string>
   <string name="tag_created">已创建标签 %1$s</string>

@@ -91,6 +91,10 @@ object MusicServiceRemote {
     service?.setPlayQueueKeepCurrent(newQueue)
   }
 
+  fun reconcilePlayQueue(freshSongs: List<Song>) {
+    service?.reconcilePlayQueue(freshSongs)
+  }
+
   fun removeFromQueue(ids: List<Long>) {
     service?.removeFromQueue(ids)
   }
