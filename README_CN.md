@@ -16,6 +16,31 @@ height="80">](https://play.google.com/store/apps/details?id=remix.myplayer)
 alt="Get it at IzzyOnDroid"
 height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
 
+## 本分支新增：标签管理
+本分支在原项目基础上新增**标签管理音乐**功能：给歌曲打上"助眠/轻音乐/钢琴/怀旧"等标签，即可按标签一键过滤出想听的音乐。适合睡觉、工作等场景——比如睡前用"助眠/钢琴"过滤出轻音乐，而用列表一个个翻找很不方便。
+
+### 截图
+|   |   |   |   |
+|:-:|:-:|:-:|:-:|
+| <img src="screenshoots/12-tag-filter.png" width="200" alt="歌曲列表标签显示" /> | <img src="screenshoots/13-tag-filter-expanded.png" width="200" alt="标签过滤" /> | <img src="screenshoots/14-tag-manage.png" width="200" alt="标签管理" /> | <img src="screenshoots/15-tag-song.png" width="200" alt="单曲标签管理" /> |
+| 歌曲列表 | 标签过滤 | 标签管理 | 单曲打标签 |
+
+|   |   |
+|:-:|:-:|
+| <img src="screenshoots/16-tag-batch.png" width="200" alt="批量打标签" /> | <img src="screenshoots/17-tag-settings.png" width="200" alt="歌曲列表设置" /> |
+| 批量打标签 | 歌曲列表设置 |
+
+### 特点
+- 标签管理音乐：给歌曲打上"助眠/轻音乐/钢琴/怀旧"等标签，支持按标签快速过滤；标签写入音频文件自定义字段（`AUDIO_TAGS`），重装应用/换设备不丢失
+- 标签过滤区：歌曲列表顶部可展开/收起，支持标签实时搜索、拖动调整高度、"与/或"逻辑组合过滤
+- 标签管理弹窗：创建、重命名、删除标签，支持"无标签"过滤
+- 批量打标签：多选歌曲后批量"添加到标签/从标签移除"
+- 单曲标签管理：列表条目五角星按钮一键管理该歌曲标签，点"保存"才写入音频文件
+- 播放队列联动：过滤结果即播放列表，切换标签时当前歌曲保持播放不打断
+- 设置-歌曲列表：新增"列表条目标签显示/列表条目标签管理/显示歌曲列表序号/显示艺术家专辑名"四个开关
+- 底部栏新增"上一首"按钮，取消专辑封面控件
+- 标签写入失败弹窗（可复制错误信息）、日志导出/清空，便于排查问题
+
 ## 截图
 |   |   |   |   |
 |:-:|:-:|:-:|:-:|
@@ -56,6 +81,7 @@ height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
 - [ImageCropper](https://github.com/CanHub/Android-Image-Cropper)
 - [TinyPinyin](https://github.com/promeG/TinyPinyin)
 - [TagLib for Android](https://github.com/rRemix/taglib)
+- 原项目：[rRemix/APlayer](https://github.com/rRemix/APlayer)
 
 
 ## 最后

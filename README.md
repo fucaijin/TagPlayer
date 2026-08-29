@@ -17,6 +17,31 @@ height="80">](https://play.google.com/store/apps/details?id=remix.myplayer)
 alt="Get it at IzzyOnDroid"
 height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
 
+## New in this fork: Tag Management
+This fork adds **tag-based music management** on top of the original project: tag your songs (e.g. sleep aid / light music / piano / nostalgic) and filter them with one tap. It fits scenarios like bedtime or work — for example, filter out light music with the "sleep aid" or "piano" tags before going to sleep, which is not convenient with plain lists.
+
+### Screenshots
+|   |   |   |   |
+|:-:|:-:|:-:|:-:|
+| <img src="screenshoots/12-tag-filter.png" width="200" alt="Tag Display in Song List" /> | <img src="screenshoots/13-tag-filter-expanded.png" width="200" alt="Tag Filter" /> | <img src="screenshoots/14-tag-manage.png" width="200" alt="Tag Manage" /> | <img src="screenshoots/15-tag-song.png" width="200" alt="Single Song Tag" /> |
+| Song List | Tag Filter | Tag Manage | Tag a Song |
+
+|   |   |
+|:-:|:-:|
+| <img src="screenshoots/16-tag-batch.png" width="200" alt="Batch Tag" /> | <img src="screenshoots/17-tag-settings.png" width="200" alt="Song List Settings" /> |
+| Batch Tag | Song List Settings |
+
+### Features
+- Tag-based music management: tag songs with "sleep aid / light music / piano / nostalgic" etc. and filter by tags; tags are written into the audio file custom field (`AUDIO_TAGS`), so they survive reinstall or device change
+- Tag filter panel: expandable/collapsible panel at the top of the song list, with live tag search, draggable height, and AND/OR logic combination
+- Tag manage dialog: create, rename, delete tags; supports filtering "no tag" songs
+- Batch tagging: multi-select songs, then add to / remove from tags in batch
+- Per-song tag manage: a star button in each list item opens the tag dialog; tags are written to the audio file only when you tap "Save"
+- Play queue sync: the filtered result becomes the playlist; the current song keeps playing when switching tags
+- Settings - Song list: 4 new switches "show tags in list / tag manage button in list / show list number / show artist and album"
+- Bottom bar: added "Previous" button, removed the cover thumbnail control
+- Tag write failure dialog (with copyable error) and log export/clear for troubleshooting
+
 ## Screenshot
 |   |   |   |   |
 |:-:|:-:|:-:|:-:|
@@ -55,6 +80,7 @@ height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
 - [ImageCropper](https://github.com/CanHub/Android-Image-Cropper)
 - [TinyPinyin](https://github.com/promeG/TinyPinyin)
 - [TagLib for Android](https://github.com/rRemix/taglib)
+- Original project: [rRemix/APlayer](https://github.com/rRemix/APlayer)
 
 ## Finally
 - Pull request is welcome
