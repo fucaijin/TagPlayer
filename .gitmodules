@@ -1,4 +1,0 @@
-[submodule "third-party/taglib"]
-	path = third-party/taglib
-	url = ../taglib.git
-	branch = main
