@@ -41,7 +41,7 @@ android {
     ndkVersion = "25.2.9519653"
 
     defaultConfig {
-        applicationId = "remix.myplayer.fcj"
+        applicationId = "remix.myplayer.tag"
         minSdk = 21
         targetSdk = 35
 
