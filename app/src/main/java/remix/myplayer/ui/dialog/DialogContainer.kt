@@ -28,4 +28,6 @@ fun DialogContainer() {
   BatchTagDialog()
 
   TagErrorDialog()
+
+  ConvertDialog()
 }

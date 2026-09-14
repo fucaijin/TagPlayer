@@ -72,18 +72,22 @@ fun PlayingDropDownMenu(
   val tagEditVM = tagEditViewModel
   val settingState by settingVM.settingsState.collectAsStateWithLifecycle()
 
-  val menuItems =
-    listOf(
-      R.string.song_edit,
-      R.string.song_detail,
-      R.string.collect,
-      R.string.add_to_playlist,
-      R.string.sleep_timer,
-      R.string.eq,
-      R.string.lyric,
-      R.string.speed,
-      R.string.delete,
-    )
+  val menuItems = buildList {
+    // "音乐标签编辑"入口可在 设置-歌曲列表 中关闭
+    if (settingState.list.showTagEdit) {
+      add(R.string.song_edit)
+    }
+    // 编辑标签：复用歌曲列表条目的五角星弹窗
+    add(R.string.edit_tags)
+    add(R.string.song_detail)
+    add(R.string.collect)
+    add(R.string.add_to_playlist)
+    add(R.string.sleep_timer)
+    add(R.string.eq)
+    add(R.string.lyric)
+    add(R.string.speed)
+    add(R.string.delete)
+  }
   val activity = LocalActivity.current as? BaseActivity
 
   val timerVM = timerViewModel
@@ -184,6 +188,12 @@ fun PlayingDropDownMenu(
               if (song.isLocal()) {
                 tagEditVM.startTagEdit(song)
                 navigateFromPlayingScreen(RouteTagEdit)
+              }
+            }
+
+            R.string.edit_tags -> {
+              if (song.isLocal()) {
+                libraryVM.showSongTagManageDialog(song)
               }
             }
 

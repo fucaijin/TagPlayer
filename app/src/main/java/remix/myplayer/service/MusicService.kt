@@ -42,6 +42,7 @@ import remix.myplayer.data.prefs.SettingPrefs.Companion.MODE_SHUFFLE
 import remix.myplayer.data.prefs.SettingPrefs.Companion.OPEN_SOFTWARE
 import remix.myplayer.helper.EQHelper
 import remix.myplayer.helper.LanguageHelper
+import remix.myplayer.helper.PlayEventTracker
 import remix.myplayer.helper.ShakeDetector
 import remix.myplayer.helper.SleepTimer
 import remix.myplayer.lyric.LyricManager
@@ -125,6 +126,9 @@ class MusicService : BaseService(),
 
   @Inject
   lateinit var historyRepository: HistoryRepository
+
+  @Inject
+  lateinit var playEventTracker: PlayEventTracker
 
   @Inject
   lateinit var fetchMetaDataUseCase: FetchMetaDataUseCase
@@ -292,6 +296,14 @@ class MusicService : BaseService(),
     Timber.tag(TAG_LIFECYCLE).v("onCreate")
     service = this
     setUp()
+    // 播放会话统计（数据分析）：每秒采样一次播放进度
+    playEventTracker.attach(this)
+    launch {
+      while (true) {
+        playEventTracker.tick(isPlaying, playback.position)
+        delay(1000L)
+      }
+    }
   }
 
   override fun onBind(intent: Intent): IBinder {
@@ -486,7 +498,7 @@ class MusicService : BaseService(),
 
     mediaSession = MediaSessionCompat(
       applicationContext,
-      "APlayer",
+      "TagPlayer",
       mediaButtonReceiverComponentName,
       pendingIntent
     )
@@ -556,6 +568,9 @@ class MusicService : BaseService(),
     stateSource.updatePlaybackUiState(isPlaying = isPlaying)
     if (isPlaying) {
       updatePlayHistory()
+    } else {
+      // 记录最后一次暂停时间（数据分析：最晚还在听音乐的时间）
+      playEventTracker.onPaused()
     }
   }
 
@@ -665,6 +680,8 @@ class MusicService : BaseService(),
     launch {
       historyRepository.update(songId, checkDuplicate)
     }
+    // 播放会话统计（数据分析）：换歌时结束上一首的会话
+    song?.let { playEventTracker.onSongStarted(it, playback.position) }
   }
 
   private fun unInit() {
@@ -675,6 +692,8 @@ class MusicService : BaseService(),
     playbackProgressSaver.stop()
     playbackFavoriteState.cancelLookup()
     appWidgetUpdater.stop()
+    // 播放会话统计（数据分析）：服务销毁时结束当前会话
+    playEventTracker.detach()
     cancel()
 
     EQHelper.releaseCurrentAudioSession(this)

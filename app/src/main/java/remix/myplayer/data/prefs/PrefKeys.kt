@@ -158,6 +158,15 @@ object PrefKeys {
     /** 歌曲列表条目是否显示标签管理按钮 */
     const val LIST_TAG_MANAGE = "list_tag_manage"
 
+    /** 是否显示"音乐标签编辑"入口（列表条目菜单/播放页菜单） */
+    const val LIST_TAG_EDIT = "list_tag_edit"
+
+    /** 标签过滤模式（包含与/包含或/互斥与/互斥或/全匹配） */
+    const val TAG_FILTER_MODE = "tag_filter_mode"
+
+    /** 数据分析：一天的分界点小时（默认 5，即凌晨 5 点前算前一天） */
+    const val STATS_DAY_START_HOUR = "stats_day_start_hour"
+
     /** 歌曲列表是否显示序号 */
     const val LIST_SHOW_NUMBER = "list_show_number"
 

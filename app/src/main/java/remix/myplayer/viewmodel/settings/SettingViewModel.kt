@@ -151,8 +151,12 @@ class SettingViewModel @Inject constructor(
     list = ListSettings(
       showTag = settingPrefs.listShowTag,
       tagManage = settingPrefs.listTagManage,
+      showTagEdit = settingPrefs.listTagEdit,
       showNumber = settingPrefs.listShowNumber,
       showArtistAlbum = settingPrefs.listShowArtistAlbum
+    ),
+    analysis = AnalysisSettings(
+      dayStartHour = settingPrefs.statsDayStartHour
     )
   )
 
@@ -470,6 +474,18 @@ class SettingViewModel @Inject constructor(
   fun setListTagManage(enabled: Boolean) {
     settingPrefs.listTagManage = enabled
     _settingsState.update { it.copy(list = it.list.copy(tagManage = enabled)) }
+  }
+
+  fun setListTagEdit(enabled: Boolean) {
+    settingPrefs.listTagEdit = enabled
+    _settingsState.update { it.copy(list = it.list.copy(showTagEdit = enabled)) }
+  }
+
+  /** 数据分析-一天分界点（0~23 点） */
+  fun setStatsDayStartHour(hour: Int) {
+    val value = hour.coerceIn(0, 23)
+    settingPrefs.statsDayStartHour = value
+    _settingsState.update { it.copy(analysis = it.analysis.copy(dayStartHour = value)) }
   }
 
   fun setListShowNumber(enabled: Boolean) {

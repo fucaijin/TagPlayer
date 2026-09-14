@@ -101,10 +101,18 @@ data class ListSettings(
   val showTag: Boolean,
   /** 列表条目标签管理（五角星按钮） */
   val tagManage: Boolean,
+  /** 是否显示"音乐标签编辑"入口（列表条目菜单/播放页菜单） */
+  val showTagEdit: Boolean,
   /** 显示歌曲列表序号 */
   val showNumber: Boolean,
   /** 显示艺术家-专辑名 */
   val showArtistAlbum: Boolean,
+)
+
+@Stable
+data class AnalysisSettings(
+  /** 一天的分界点小时（该小时之前算前一天，默认 5 点） */
+  val dayStartHour: Int,
 )
 
 @Stable
@@ -118,4 +126,5 @@ data class SettingsState(
   val lyric: LyricSettings,
   val notification: NotificationSettings,
   val list: ListSettings,
+  val analysis: AnalysisSettings,
 )

@@ -11,6 +11,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import remix.myplayer.data.model.misc.TagFilterMode
 import remix.myplayer.helper.LanguageHelper.AUTO
 import remix.myplayer.helper.SortOrder
 import remix.myplayer.util.Constants.MB
@@ -125,8 +126,19 @@ class SettingPrefs @Inject constructor(
   // 歌曲列表相关开关
   var listShowTag by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_TAG, true)
   var listTagManage by PrefsDelegate(sp, PrefKeys.Setting.LIST_TAG_MANAGE, true)
+  var listTagEdit by PrefsDelegate(sp, PrefKeys.Setting.LIST_TAG_EDIT, true)
   var listShowNumber by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_NUMBER, true)
   var listShowArtistAlbum by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_ARTIST_ALBUM, true)
+
+  /** 标签过滤模式（TagFilterMode.name），下次启动保持上次选择 */
+  var tagFilterMode by PrefsDelegate(
+    sp,
+    PrefKeys.Setting.TAG_FILTER_MODE,
+    TagFilterMode.INCLUDE_AND.name
+  )
+
+  /** 数据分析：一天的分界点小时（默认 5 点，凌晨 5 点前算前一天） */
+  var statsDayStartHour by PrefsDelegate(sp, PrefKeys.Setting.STATS_DAY_START_HOUR, 5)
 
   var ignoreAudioFocus by PrefsDelegate(sp, PrefKeys.Setting.AUDIO_FOCUS, false)
   var decoderMode by PrefsDelegate(

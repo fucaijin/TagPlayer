@@ -78,4 +78,31 @@ internal object DbMigrations {
       db.execSQL("CREATE TABLE IF NOT EXISTS `TagEntity` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)")
     }
   }
+
+  val migration9to10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("CREATE TABLE IF NOT EXISTS `SearchHistory` (`keyword` TEXT NOT NULL, `lastSearchTime` INTEGER NOT NULL, `searchCount` INTEGER NOT NULL, PRIMARY KEY(`keyword`))")
+    }
+  }
+
+  val migration10to11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      // 播放会话（数据分析）
+      db.execSQL("CREATE TABLE IF NOT EXISTS `PlayEvent` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `path` TEXT NOT NULL, `title` TEXT NOT NULL, `artist` TEXT NOT NULL, `album` TEXT NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER NOT NULL, `lastActiveTime` INTEGER NOT NULL, `playedMs` INTEGER NOT NULL, `maxPositionMs` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `skipped` INTEGER NOT NULL)")
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_PlayEvent_startTime` ON `PlayEvent` (`startTime`)")
+      // 应用使用会话（数据分析）
+      db.execSQL("CREATE TABLE IF NOT EXISTS `AppOpenSession` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `openTime` INTEGER NOT NULL, `closeTime` INTEGER NOT NULL)")
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_AppOpenSession_openTime` ON `AppOpenSession` (`openTime`)")
+    }
+  }
+
+  val migration11to12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      // 每小时播放时长（数据分析）：按整点小时拆分，用于每日播放时长与时段热力图
+      db.execSQL("CREATE TABLE IF NOT EXISTS `PlayHourStat` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `hourStart` INTEGER NOT NULL, `playedMs` INTEGER NOT NULL)")
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_PlayHourStat_hourStart` ON `PlayHourStat` (`hourStart`)")
+      // 历史会话没有按小时拆分的信息，按旧口径（整段算在开始的那个小时）回填，避免升级后报表变空
+      db.execSQL("INSERT INTO `PlayHourStat` (`hourStart`, `playedMs`) SELECT (`startTime` / 3600000) * 3600000, `playedMs` FROM `PlayEvent` WHERE `playedMs` > 0")
+    }
+  }
 }

@@ -3,11 +3,14 @@ package remix.myplayer.ui.dialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -89,30 +92,37 @@ fun BatchTagDialog() {
       TextSecondary(stringResource(R.string.select_tag_tip), fontSize = 14.sp)
 
       if (allTags.isNotEmpty()) {
-        FlowRow(
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-          verticalArrangement = Arrangement.spacedBy(8.dp),
-          modifier = Modifier.padding(top = 8.dp)
+        // 标签较多时可滚动，避免撑高弹窗把底部按钮顶出屏幕
+        Column(
+          modifier = Modifier
+            .weight(1f, false)
+            .verticalScroll(rememberScrollState())
         ) {
-          allTags.forEach { tag ->
-            val isSelected = tag in selected
-            Surface(
-              shape = RoundedCornerShape(50),
-              color = if (isSelected) theme.secondary else theme.mainBackground,
-              border = BorderStroke(
-                width = 1.dp,
-                color = if (isSelected) theme.secondary else theme.textSecondary.copy(alpha = 0.5f)
-              ),
-              onClick = {
-                selected = if (isSelected) selected - tag else selected + tag
+          FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 8.dp)
+          ) {
+            allTags.forEach { tag ->
+              val isSelected = tag in selected
+              Surface(
+                shape = RoundedCornerShape(50),
+                color = if (isSelected) theme.secondary else theme.mainBackground,
+                border = BorderStroke(
+                  width = 1.dp,
+                  color = if (isSelected) theme.secondary else theme.textSecondary.copy(alpha = 0.5f)
+                ),
+                onClick = {
+                  selected = if (isSelected) selected - tag else selected + tag
+                }
+              ) {
+                Text(
+                  text = tag,
+                  fontSize = 14.sp,
+                  modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                  color = if (isSelected) theme.primaryReverse else theme.textPrimary
+                )
               }
-            ) {
-              Text(
-                text = tag,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                color = if (isSelected) theme.primaryReverse else theme.textPrimary
-              )
             }
           }
         }

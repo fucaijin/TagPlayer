@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import remix.myplayer.R
 import remix.myplayer.data.model.audio.APlayerModel
 import remix.myplayer.data.model.audio.Song
@@ -75,21 +76,23 @@ private fun SongDropdownMenu(
   parent: APlayerModel,
   onDismissRequest: () -> Unit
 ) {
-  val menuItems =
-    listOf(
-      R.string.add_to_next_song,
-      R.string.add_to_play_queue,
-      R.string.add_to_playlist,
-      R.string.song_detail,
-      R.string.song_edit,
-//      R.string.set_album_cover,
-      R.string.collect,
-      R.string.share,
-      R.string.ring,
-      R.string.delete
-    )
-  val activity = LocalActivity.current as? BaseActivity
   val settingVM = settingViewModel
+  val settingState by settingVM.settingsState.collectAsStateWithLifecycle()
+  val menuItems = buildList {
+    add(R.string.add_to_next_song)
+    add(R.string.add_to_play_queue)
+    add(R.string.add_to_playlist)
+    add(R.string.song_detail)
+    // "音乐标签编辑"入口可在 设置-歌曲列表 中关闭
+    if (settingState.list.showTagEdit) {
+      add(R.string.song_edit)
+    }
+    add(R.string.collect)
+    add(R.string.share)
+    add(R.string.ring)
+    add(R.string.delete)
+  }
+  val activity = LocalActivity.current as? BaseActivity
   val tagEditVM = tagEditViewModel
   val playbackVM = playbackViewModel
   val libraryVM = libraryViewModel

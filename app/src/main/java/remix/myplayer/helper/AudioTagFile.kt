@@ -36,8 +36,8 @@ object AudioTagFile {
       ReplayGain.fromPropertyMap(map)
     }
 
-  fun savePropertyMap(file: File, propertyMap: PropertyMap): Boolean =
-    TagLib.savePropertyMap(file.absolutePath, propertyMap)
+  fun savePropertyMap(file: File, propertyMap: PropertyMap, cacheDir: File? = null): Boolean =
+    TagLib.savePropertyMap(file.absolutePath, propertyMap, cacheDir?.absolutePath)
 
   fun savePictures(file: File, pictures: Array<Picture>): Boolean =
     TagLib.savePictures(file.absolutePath, pictures)

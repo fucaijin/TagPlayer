@@ -19,6 +19,8 @@ import remix.myplayer.ui.nav.LocalNavController
 import remix.myplayer.ui.nav.RouteAbout
 import remix.myplayer.ui.nav.RouteEq
 import remix.myplayer.ui.nav.RouteSettingDetail
+import remix.myplayer.ui.screen.DataAnalysisReport
+import remix.myplayer.ui.screen.setting.logic.analysis.StatsDayStartHourLogic
 import remix.myplayer.ui.screen.setting.logic.color.BlackThemeLogic
 import remix.myplayer.ui.screen.setting.logic.color.ColoredNaviBarLogic
 import remix.myplayer.ui.screen.setting.logic.color.DarkThemeLogic
@@ -43,6 +45,7 @@ import remix.myplayer.ui.screen.setting.logic.library.LibraryLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListShowArtistAlbumLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListShowNumberLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListShowTagLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListTagEditLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListTagManageLogic
 import remix.myplayer.ui.screen.setting.logic.lyric.DesktopLyricLogic
 import remix.myplayer.ui.screen.setting.logic.lyric.LyricPriorityLogic
@@ -52,6 +55,7 @@ import remix.myplayer.ui.screen.setting.logic.notification.ClassicNotifyLogic
 import remix.myplayer.ui.screen.setting.logic.notification.NotifyBackgroundLogic
 import remix.myplayer.ui.screen.setting.logic.other.ClearCacheLogic
 import remix.myplayer.ui.screen.setting.logic.other.ClearLogLogic
+import remix.myplayer.ui.screen.setting.logic.other.ClearSearchHistoryLogic
 import remix.myplayer.ui.screen.setting.logic.other.ExportLogLogic
 import remix.myplayer.ui.screen.setting.logic.play.AutoPlayLogic
 import remix.myplayer.ui.screen.setting.logic.play.DecoderModeLogic
@@ -115,6 +119,7 @@ fun SettingDetailScreen(categoryKey: String) {
           SettingCategory.Cover -> CoverPreferenceItems()
           SettingCategory.Lyric -> LyricPreferenceItems()
           SettingCategory.Notification -> NotificationPreferenceItems()
+          SettingCategory.DataAnalysis -> DataAnalysisPreferenceItems()
           SettingCategory.Other -> OtherPreferenceItems()
         }
       }
@@ -184,6 +189,12 @@ private enum class SettingCategory(
     R.string.notify,
     R.string.setting_notification_desc,
     "notification"
+  ),
+  DataAnalysis(
+    R.drawable.ic_lab_profile_24dp,
+    R.string.data_analysis,
+    R.string.setting_data_analysis_desc,
+    "data_analysis"
   ),
   Other(R.drawable.ic_info_outlined_24dp, R.string.other, R.string.setting_other_desc, "other");
 
@@ -262,6 +273,8 @@ private fun ListPreferenceItems() {
 
   ListTagManageLogic()
 
+  ListTagEditLogic()
+
   ListShowNumberLogic()
 
   ListShowArtistAlbumLogic()
@@ -306,6 +319,13 @@ private fun LyricPreferenceItems() {
 }
 
 @Composable
+private fun DataAnalysisPreferenceItems() {
+  StatsDayStartHourLogic()
+
+  DataAnalysisReport()
+}
+
+@Composable
 private fun OtherPreferenceItems() {
   val mainViewModel = mainViewModel
   val activity = LocalActivity.current
@@ -328,6 +348,8 @@ private fun OtherPreferenceItems() {
   }
 
   ClearCacheLogic()
+
+  ClearSearchHistoryLogic()
 
   ExportLogLogic()
 

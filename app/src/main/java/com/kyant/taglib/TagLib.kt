@@ -2,6 +2,7 @@ package com.kyant.taglib
 
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
+import org.jaudiotagger.audio.mp4.Mp4FileReader
 import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.Tag
 import org.jaudiotagger.tag.id3.AbstractID3v2Frame
@@ -18,6 +19,7 @@ import org.jaudiotagger.tag.mp4.field.Mp4TagReverseDnsField
 import org.jaudiotagger.tag.vorbiscomment.VorbisCommentTag
 import timber.log.Timber
 import java.io.File
+import java.io.FileInputStream
 
 object TagLib {
 
@@ -27,10 +29,58 @@ object TagLib {
     /** M4A 自由格式字段的 issuer（iTunes 惯例） */
     private const val MP4_ISSUER = "com.apple.iTunes"
 
+    /** jaudiotagger 可读写、且能承载自定义字段的扩展名 */
+    private val WRITABLE_EXTENSIONS = setOf("mp3", "m4a", "mp4", "m4p", "flac", "ogg", "oga", "wma")
+
+    /** jaudiotagger 能读但无法写入自定义字段（WavTag 只支持固定 LIST/INFO 字段） */
+    private val READ_ONLY_EXTENSIONS = setOf("wav")
+
+    /** 音频格式不支持写入标签时抛出，便于上层给出明确提示 */
+    class UnsupportedFormatException(message: String) : Exception(message)
+
+    /**
+     * 该文件能否写入标签。
+     * 扩展名不标准（如 .aac 实为 MP4 容器）时按文件内容判断。
+     */
+    @JvmStatic
+    fun isTagWritable(path: String): Boolean {
+        val file = File(path)
+        val ext = file.extension.lowercase()
+        if (ext in WRITABLE_EXTENSIONS) return true
+        if (ext in READ_ONLY_EXTENSIONS) return false
+        return isMp4Container(file)
+    }
+
+    /** 是否为 MP4/M4A 容器（以 ftyp 盒开头，偏移 4 处为 "ftyp"） */
+    private fun isMp4Container(file: File): Boolean {
+        return try {
+            val header = ByteArray(8)
+            FileInputStream(file).use { input ->
+                if (input.read(header) < 8) return false
+            }
+            String(header, 4, 4, Charsets.ISO_8859_1) == "ftyp"
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * 读取音频文件。
+     * 扩展名不标准的 MP4 容器（如 .aac）jaudiotagger 会因扩展名直接拒绝，
+     * 这里按文件内容改用 Mp4FileReader。
+     */
+    private fun readAudioFile(file: File): AudioFile {
+        val ext = file.extension.lowercase()
+        if (ext !in WRITABLE_EXTENSIONS && ext !in READ_ONLY_EXTENSIONS && isMp4Container(file)) {
+            return Mp4FileReader().read(file)
+        }
+        return AudioFileIO.read(file)
+    }
+
     @JvmStatic
     fun getAudioProperties(path: String): AudioProperties? {
         return try {
-            val audioFile = AudioFileIO.read(File(path))
+            val audioFile = readAudioFile(File(path))
             val header = audioFile.audioHeader
             AudioProperties(
                 bitrate = header.bitRate?.toIntOrNull() ?: 0,
@@ -38,7 +88,8 @@ object TagLib {
                 channels = header.channels?.toIntOrNull() ?: 0,
                 duration = header.trackLength?.toLong() ?: 0L
             )
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            Timber.w(e, "read audio properties failed: $path")
             null
         }
     }
@@ -46,7 +97,7 @@ object TagLib {
     @JvmStatic
     fun getMetadata(path: String, readPictures: Boolean = true): Metadata? {
         return try {
-            val audioFile = AudioFileIO.read(File(path))
+            val audioFile = readAudioFile(File(path))
             val tag = audioFile.tag
 
             val propertyMap = mutableMapOf<String, Array<String>>()
@@ -79,7 +130,8 @@ object TagLib {
             val pictures = emptyArray<Picture>()
 
             Metadata(propertyMap, pictures)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            Timber.w(e, "read metadata failed: $path")
             null
         }
     }
@@ -90,39 +142,87 @@ object TagLib {
     }
 
     @JvmStatic
-    fun savePropertyMap(path: String, propertyMap: PropertyMap): Boolean {
-        if (saveOnExisting(File(path), propertyMap)) return true
+    @JvmOverloads
+    fun savePropertyMap(path: String, propertyMap: PropertyMap, cacheDir: String? = null): Boolean {
+        val file = File(path)
+        // 扩展名不标准的 MP4 容器（如 .aac）：jaudiotagger 按扩展名找不到 writer，
+        // 先在临时 .m4a 文件上写入，再覆盖回原文件
+        if (file.extension.lowercase() !in WRITABLE_EXTENSIONS && isMp4Container(file)) {
+            return saveMp4ViaTempFile(file, propertyMap, cacheDir)
+        }
+        if (saveOnExisting(file, propertyMap)) return true
         // 常规写入失败（通常是 jaudiotagger 无法完整解析的标签，例如 ffmpeg 写入的
         // ID3v2 标签末尾不足 10 字节），改为重建整个标签再写入
         Timber.w("jaudiotagger normal save failed, fallback to rebuild: $path")
-        return saveByRebuild(File(path), propertyMap)
+        return saveByRebuild(file, propertyMap)
     }
 
     /** 常规保存：读取现有标签并修改 */
     private fun saveOnExisting(file: File, propertyMap: PropertyMap): Boolean {
         return try {
-            val audioFile = AudioFileIO.read(file)
-            val tag = audioFile.tag ?: audioFile.createDefaultTag()
+            val audioFile = readAudioFile(file)
+            // MP3 只有 ID3v1 标签（或 jaudiotagger 返回的空 ID3v1Tag）时无法承载自定义字段，需改用默认的 ID3v2 标签
+            val existing = audioFile.tag?.takeIf(::canHoldCustomField)
+            val tag = existing ?: audioFile.createDefaultTag()
             applyPropertyMap(tag, propertyMap)
+            // 标签对象未挂到 audioFile 上时必须显式 setTag，否则 commit 不会写任何东西（且不报错）
+            if (audioFile.tag !== tag) {
+                audioFile.setTag(tag)
+            }
             audioFile.commit()
             true
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: Throwable) {
+            Timber.w(e, "save tags failed: ${file.absolutePath}")
             false
         }
+    }
+
+    /** 该标签类型能否承载应用自定义字段（MP3 的 ID3v1 只能存固定字段） */
+    private fun canHoldCustomField(tag: Tag): Boolean = when (tag) {
+        is AbstractID3v2Tag, is FlacTag, is VorbisCommentTag, is Mp4Tag, is AsfTag -> true
+        else -> false
     }
 
     /** 兜底保存：丢弃无法解析的旧标签，用全新默认标签写入（不删除文件其它内容） */
     private fun saveByRebuild(file: File, propertyMap: PropertyMap): Boolean {
         return try {
-            val audioFile = AudioFileIO.read(file)
+            val audioFile = readAudioFile(file)
             val freshTag = audioFile.createDefaultTag()
             applyPropertyMap(freshTag, propertyMap)
             audioFile.setTag(freshTag)
             audioFile.commit()
             true
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: Throwable) {
+            Timber.w(e, "rebuild tags failed: ${file.absolutePath}")
+            false
+        }
+    }
+
+    /**
+     * 扩展名不被 jaudiotagger 识别、但内容为 MP4 容器时的保存方式：
+     * 复制到临时 .m4a 文件写入标签，写成功后覆盖回原文件（保持原路径与扩展名）。
+     */
+    private fun saveMp4ViaTempFile(file: File, propertyMap: PropertyMap, cacheDir: String?): Boolean {
+        val dir = cacheDir?.let { File(it) }?.takeIf { it.isDirectory }
+        return try {
+            val temp = File.createTempFile("aplayer-tag-", ".m4a", dir)
+            try {
+                file.copyTo(temp, overwrite = true)
+                val audioFile = Mp4FileReader().read(temp)
+                val existing = audioFile.tag?.takeIf(::canHoldCustomField)
+                val tag = existing ?: audioFile.createDefaultTag()
+                applyPropertyMap(tag, propertyMap)
+                if (audioFile.tag !== tag) {
+                    audioFile.setTag(tag)
+                }
+                audioFile.commit()
+                temp.copyTo(file, overwrite = true)
+                true
+            } finally {
+                temp.delete()
+            }
+        } catch (e: Throwable) {
+            Timber.w(e, "save mp4 tag via temp file failed: ${file.absolutePath}")
             false
         }
     }
@@ -163,7 +263,7 @@ object TagLib {
             is VorbisCommentTag -> tag.setField(key, value)
             is Mp4Tag -> writeMp4Freeform(tag, key, value)
             is AsfTag -> tag.setField(AsfTagTextField(key, value))
-            else -> Timber.d("custom field %s not supported for tag %s", key, tag.javaClass.simpleName)
+            else -> Timber.w("custom field %s not supported for tag %s", key, tag.javaClass.simpleName)
         }
     }
 

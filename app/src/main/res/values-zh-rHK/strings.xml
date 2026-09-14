@@ -1,6 +1,6 @@
 <resources>
   <string name="version">v1.2.7</string>
-  <string name="app_name">APlayer</string>
+  <string name="app_name">TagPlayer</string>
 
   <string name="tab_song">歌曲</string>
   <string name="tab_album">專輯</string>
@@ -16,8 +16,8 @@
   <string name="drawer_setting">設定</string>
   <string name="drawer_history">播放歷史</string>
 
-  <string name="from_aplayer">來自 APlayer 播放器</string>
-  <string name="about">關於 APlayer</string>
+  <string name="from_aplayer">來自 TagPlayer 播放器</string>
+  <string name="about">關於 TagPlayer</string>
   <string name="model_random">隨機播放</string>
   <string name="model_repeat">單曲播放</string>
   <string name="model_normal">順序播放</string>
@@ -39,8 +39,9 @@
   <string name="about_privacy_subtitle">閱讀我們的隱私政策</string>
   <string name="about_rate_title">評分支持</string>
   <string name="about_rate_subtitle">給我們 5 星好評</string>
-  <string name="about_share_message">試試 APlayer，這是一款很棒的音樂播放器！%1$s</string>
-  <string name="about_share_chooser">分享 APlayer</string>
+  <string name="about_share_message">試試 TagPlayer，這是一款很棒的音樂播放器！%1$s</string>
+  <string name="about_share_chooser">分享 TagPlayer</string>
+  <string name="about_based_on">本專案基於Aplayer，新增了標籤管理與數據分析功能</string>
   <string name="my_favorite">我的最愛</string>
   <string name="list_is_empty">清單為空</string>
   <string name="folder">資料夾</string>
@@ -188,6 +189,7 @@
   <string name="support_develop">支援我們</string>
   <string name="choose">選擇</string>
   <string name="donate_tip">您的支持，是我們進步的動力。</string>
+  <string name="support_donate_note">本頁面的收款渠道均屬於原項目Aplayer，感謝支持！</string>
   <string name="jump_alipay_account">跳轉支付寶</string>
   <string name="already_copy">已複製到剪貼簿</string>
   <string name="confirm_delete_playlist">是否移除所選播放清單？</string>
@@ -197,9 +199,9 @@
   <string name="eq">等化器</string>
   <string name="collect">收藏</string>
   <string name="only_lollopop">僅支援 Android 5.0 及以上</string>
-  <string name="aplayer_lockscreen">APlayer 螢幕保護程式</string>
+  <string name="aplayer_lockscreen">TagPlayer 螢幕保護程式</string>
   <string name="system_lockscreen">系統鎖定螢幕</string>
-  <string name="aplayer_lockscreen_tip">鎖定螢幕會顯示當前曲目的封面，樣式取決於 APlayer</string>
+  <string name="aplayer_lockscreen_tip">鎖定螢幕會顯示當前曲目的封面，樣式取決於 TagPlayer</string>
   <string name="system_lockscreen_tip">鎖定螢幕會顯示當前曲目的封面，樣式取決於你的系統</string>
   <string name="lockscreen_off_tip">鎖定螢幕將不會顯示曲目封面</string>
 
@@ -373,11 +375,11 @@
   <string name="paypal">Paypal</string>
   <string name="exit">退出</string>
   <string name="plz_set_default_time">請先設定預設時間</string>
-  <string name="app_widget_big_name">APlayer-大尺寸</string>
-  <string name="app_widget_medium_name">APlayer-中尺寸</string>
-  <string name="app_widget_small_name">APlayer-小尺寸</string>
-  <string name="app_widget_medium_transparent_name">APlayer-中尺寸-透明</string>
-  <string name="app_widget_small_transparent_name">APlayer-小尺寸-透明</string>
+  <string name="app_widget_big_name">TagPlayer-大尺寸</string>
+  <string name="app_widget_medium_name">TagPlayer-中尺寸</string>
+  <string name="app_widget_small_name">TagPlayer-小尺寸</string>
+  <string name="app_widget_medium_transparent_name">TagPlayer-中尺寸-透明</string>
+  <string name="app_widget_small_transparent_name">TagPlayer-小尺寸-透明</string>
   <string name="create_playlist_fail">建立播放清單失敗: </string>
   <string name="export_playlist">播放清單匯出</string>
   <string name="export_play_list_tip">將播放清單匯出至外部儲存</string>

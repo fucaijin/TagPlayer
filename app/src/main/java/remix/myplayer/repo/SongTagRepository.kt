@@ -67,6 +67,13 @@ class SongTagRepository @Inject constructor(
   suspend fun allTagNames(): Set<String> =
     cacheDao.getAll().flatMap { SongTagFile.parseTags(it.tags) }.toSet()
 
+  /** 歌曲路径 -> 标签集合 的快照（数据分析用） */
+  suspend fun allTagsByPath(): Map<String, Set<String>> =
+    cacheDao.getAll().associate { it.path to SongTagFile.parseTags(it.tags) }
+
+  /** 清空标签缓存索引（下次扫描会重新从音频文件读取标签） */
+  suspend fun clearIndex() = cacheDao.clearAll()
+
   /** 扫描歌曲文件的标签，增量同步到缓存表 */
   suspend fun refreshIndex(songs: List<Song>) {
     val localSongs = songs.filter { it.isLocal() && it.valid() }
@@ -116,7 +123,7 @@ class SongTagRepository @Inject constructor(
     }
     return withContext(Dispatchers.IO) {
       runCatching {
-        val ok = SongTagFile.writeTags(File(song.data), tags)
+        val ok = SongTagFile.writeTags(File(song.data), App.context.cacheDir, tags)
         check(ok) { "Failed to write tags to file: ${song.data}" }
         cacheDao.upsert(
           SongTagCache(

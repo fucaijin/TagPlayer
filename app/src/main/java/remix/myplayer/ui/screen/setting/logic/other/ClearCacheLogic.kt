@@ -50,7 +50,8 @@ fun ClearCacheLogic() {
 
       scope.launch {
         settingVM.clearCache(context) {
-          libraryVM.fetchMedia(true)
+          // 标签缓存一并清空，重新从音频文件读取（音频文件是标签的唯一真相源）
+          libraryVM.resyncTags()
           cacheSize = 0
         }
       }

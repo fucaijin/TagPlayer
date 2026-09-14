@@ -2,6 +2,7 @@ package remix.myplayer.ui.nav
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -10,14 +11,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
@@ -29,6 +36,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.toRoute
 import androidx.savedstate.SavedState
+import kotlinx.coroutines.delay
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -58,6 +66,8 @@ import remix.myplayer.ui.screen.history.HistoryScreen
 import remix.myplayer.ui.screen.home.HomeScreen
 import remix.myplayer.ui.screen.setting.SettingDetailScreen
 import remix.myplayer.ui.screen.setting.SettingScreen
+import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.screen.setting.ReplayGainSettingScreen
 import remix.myplayer.ui.screen.smb.SmbDetailScreen
 import remix.myplayer.ui.screen.webdav.WebDavDetailScreen
@@ -92,6 +102,19 @@ val playingScreenDeepLink = "aplayer://playingScreen".toUri()
 @Composable
 fun AppNav() {
   val snackBarHostState = remember { SnackbarHostState() }
+  // 标签等操作的短提示：屏幕正中显示约 1 秒
+  var centerMessage by remember { mutableStateOf<String?>(null) }
+
+  LaunchedEffect(Unit) {
+    MessageNotifier.centerMessages.collect { centerMessage = it }
+  }
+  LaunchedEffect(centerMessage) {
+    if (centerMessage != null) {
+      delay(CENTER_MESSAGE_DURATION_MS)
+      centerMessage = null
+    }
+  }
+
   ProvideSnackBarHostState(snackBarHostState) {
     Box(modifier = Modifier.fillMaxSize()) {
       AppScaffold {
@@ -266,6 +289,17 @@ fun AppNav() {
           .align(Alignment.BottomCenter)
           .padding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom).asPaddingValues())
       )
+
+      centerMessage?.let { message ->
+        Box(
+          modifier = Modifier
+            .align(Alignment.Center)
+            .background(LocalTheme.current.dialogBackground, RoundedCornerShape(8.dp))
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+          TextPrimary(message, fontSize = 15.sp)
+        }
+      }
     }
 
     LaunchedEffect(Unit) {
@@ -276,6 +310,9 @@ fun AppNav() {
     }
   }
 }
+
+/** 屏幕正中央短提示的显示时长 */
+private const val CENTER_MESSAGE_DURATION_MS = 1000L
 
 private fun NavGraphBuilder.normalAnimatedScreen(
   route: String,

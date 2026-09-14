@@ -31,6 +31,9 @@ val LocalSmbViewModel = compositionLocalOf<SmbViewModel> {
 val LocalPlaybackViewModel = compositionLocalOf<PlaybackViewModel> {
   error("PlaybackViewModel not provided")
 }
+val LocalDataAnalysisViewModel = compositionLocalOf<DataAnalysisViewModel> {
+  error("DataAnalysisViewModel not provided")
+}
 
 
 @Composable
@@ -43,7 +46,8 @@ fun ProvideViewModels(content: @Composable () -> Unit) {
     LocalTimerViewModel provides activityViewModel(),
     LocalWebDavViewModel provides activityViewModel(),
     LocalSmbViewModel provides activityViewModel(),
-    LocalPlaybackViewModel provides activityViewModel()
+    LocalPlaybackViewModel provides activityViewModel(),
+    LocalDataAnalysisViewModel provides activityViewModel()
   ) {
     content()
   }
@@ -88,3 +92,8 @@ val smbViewModel: SmbViewModel
   @Composable
   @ReadOnlyComposable
   get() = LocalSmbViewModel.current
+
+val dataAnalysisViewModel: DataAnalysisViewModel
+  @Composable
+  @ReadOnlyComposable
+  get() = LocalDataAnalysisViewModel.current

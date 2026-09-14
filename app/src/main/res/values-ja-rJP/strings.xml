@@ -1,7 +1,7 @@
 <resources>
     <string name="version">v1.2.7</string>
-    <string name="app_name">APlayer</string>
-
+    <string name="app_name">TagPlayer</string>
+    
     <string name="tab_song">曲</string>
     <string name="tab_album">アルバム</string>
     <string name="tab_artist">アーティスト</string>
@@ -16,8 +16,8 @@
     <string name="drawer_setting">設定</string>
     <string name="drawer_history">再生履歴</string>
 
-    <string name="about">APlayerについて</string>
-    <string name="from_aplayer">APlayerから</string>
+    <string name="about">TagPlayerについて</string>
+    <string name="from_aplayer">TagPlayerから</string>
     <string name="model_random">シャッフル</string>
     <string name="model_repeat">リピート</string>
     <string name="model_normal">ループ</string>
@@ -39,8 +39,9 @@
     <string name="about_privacy_subtitle">プライバシーポリシーを読む</string>
     <string name="about_rate_title">アプリを評価</string>
     <string name="about_rate_subtitle">5つ星で応援</string>
-    <string name="about_share_message">APlayerをチェックしよう。素敵な音楽プレーヤーです！%1$s</string>
-    <string name="about_share_chooser">APlayerを共有</string>
+    <string name="about_share_message">TagPlayerをチェックしよう。素敵な音楽プレーヤーです！%1$s</string>
+    <string name="about_share_chooser">TagPlayerを共有</string>
+    <string name="about_based_on">本プロジェクトはAPlayerをベースに、タグ管理とデータ分析機能を追加したものです</string>
     <string name="my_favorite">お気に入り</string>
     <string name="list_is_empty">リストは空です</string>
     <string name="folder">フォルダ</string>
@@ -188,6 +189,7 @@
   <string name="support_develop">開発を支援</string>
   <string name="choose">選択</string>
   <string name="donate_tip">あなたのご支援でアプリをより良いものに</string>
+  <string name="support_donate_note">このページの寄付チャネルはすべてオリジナルプロジェクトAPlayerに属します。ご支援ありがとうございます！</string>
   <string name="jump_alipay_account">Alipayへ</string>
   <string name="already_copy">クリップボードにコピーされました</string>
   <string name="confirm_delete_playlist">選択したプレイリストを削除してよろしいですか?</string>
@@ -197,9 +199,9 @@
   <string name="eq">イコライザー</string>
   <string name="collect">お気に入りに追加</string>
   <string name="only_lollopop">Android 5.0 以降のみサポートされています</string>
-  <string name="aplayer_lockscreen">APlayer ロック画面</string>
+  <string name="aplayer_lockscreen">TagPlayer ロック画面</string>
   <string name="system_lockscreen">システム ロック画面</string>
-  <string name="aplayer_lockscreen_tip">ロック画面の背景に再生中の曲のアルバムカバーが表示されています (APlayerスタイル)</string>
+  <string name="aplayer_lockscreen_tip">ロック画面の背景に再生中の曲のアルバムカバーが表示されています (TagPlayerスタイル)</string>
   <string name="system_lockscreen_tip">ロック画面の背景に再生中の曲のアルバムカバーが表示されています (システム依存スタイル)</string>
   <string name="lockscreen_off_tip">ロック画面にアルバムカバーを表示しません (いくつかの機能が利用できません)</string>
 
@@ -358,10 +360,10 @@
   <string name="cant_share_song">楽曲の共有ができません</string>
   <string name="save_wechat_qrcode_success">WeChatのQRコードを保存しました。WeChatで読み込んでください</string>
   <string name="play_breakpoint">停止時間から再生</string>
-  <string name="play_breakpoint_tip">APlayerを開き直したとき, 一時停止した時間から再生を再開します</string>
+  <string name="play_breakpoint_tip">TagPlayerを開き直したとき, 一時停止した時間から再生を再開します</string>
   <string name="list_loop">プレイリストをループ</string>
   <string name="list_loop_tip">プレイリストの最後まで再生したら最初の曲から続けます</string>
-  <string name="will_stop_at_x">APlayerは %d 分後に終了します</string>
+  <string name="will_stop_at_x">TagPlayerは %d 分後に終了します</string>
   <string name="saveing">保存</string>
   <string name="ignore_mediastore_artwork">メディアストアのカバー画像を無視</string>
   <string name="ignore_mediastore_artwork_tips">アルバムカバーの画質が向上するかもしれませんが、読込に時間がかかることがあります</string>
@@ -373,11 +375,11 @@
   <string name="paypal">Paypal</string>
   <string name="exit">終了</string>
   <string name="plz_set_default_time">先にデフォルト時間を設定してください</string>
-  <string name="app_widget_big_name">APlayer-大</string>
-  <string name="app_widget_medium_name">APlayer-中</string>
-  <string name="app_widget_small_name">APlayer-小</string>
-  <string name="app_widget_medium_transparent_name">APlayer-中-透過</string>
-  <string name="app_widget_small_transparent_name">APlayer-小-透過</string>
+  <string name="app_widget_big_name">TagPlayer-大</string>
+  <string name="app_widget_medium_name">TagPlayer-中</string>
+  <string name="app_widget_small_name">TagPlayer-小</string>
+  <string name="app_widget_medium_transparent_name">TagPlayer-中-透過</string>
+  <string name="app_widget_small_transparent_name">TagPlayer-小-透過</string>
   <string name="create_playlist_fail">プレイリストが作成できません: </string>
   <string name="export_playlist">プレイリストをエクスポート</string>
   <string name="export_play_list_tip">プレイリストをストレージ上にエクスポートします</string>
@@ -451,8 +453,8 @@
   <string name="md_presets_label">プリセット</string>
 
   <string name="init_failed">初期化できません: %s</string>
-  <string name="select_language">APlayerの言語を設定</string>
-  <string name="select_language_tips">強制的にAPlayerの言語を変更します</string>
+  <string name="select_language">TagPlayerの言語を設定</string>
+  <string name="select_language_tips">強制的にTagPlayerの言語を変更します</string>
 
   <string name="auto">自動</string>
   <string name="zh_simple">中国語 (簡体)</string>

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.SharedFlow
 import remix.myplayer.R
+import remix.myplayer.data.model.misc.TagFilterMode
 import remix.myplayer.service.Command
 import remix.myplayer.service.MusicService
 import remix.myplayer.service.MusicServiceRemote.setPlayQueue
@@ -54,10 +55,11 @@ import remix.myplayer.viewmodel.settingViewModel
 fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
   val libraryVM = libraryViewModel
   val mainVM = mainViewModel
+  val settingVM = settingViewModel
 
   val playbackState by playbackViewModel.playbackUiState.collectAsStateWithLifecycle()
   val multiSelectState by mainVM.multiSelectState.collectAsStateWithLifecycle()
-  val settingState by settingViewModel.settingsState.collectAsStateWithLifecycle()
+  val settingState by settingVM.settingsState.collectAsStateWithLifecycle()
   val songTags by libraryVM.songTags.collectAsStateWithLifecycle()
   val allTags by libraryVM.allTags.collectAsStateWithLifecycle()
   val listState = rememberLazyListState()
@@ -65,59 +67,51 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
   val context = LocalContext.current
   val popupEnabled = !multiSelectState.isShowInLibrary()
 
-  // 标签过滤区状态
+  // 标签过滤区状态（过滤模式会持久化，下次启动保持上次选择）
   var filterExpanded by rememberSaveable { mutableStateOf(false) }
-  var filterMatchAll by rememberSaveable { mutableStateOf(true) }
+  var filterMode by remember {
+    mutableStateOf(TagFilterMode.fromName(settingVM.settingPrefs.tagFilterMode))
+  }
   var filterSearchQuery by rememberSaveable { mutableStateOf("") }
-  var selectedFilterTags by remember { mutableStateOf(emptySet<String>()) }
+  var includedFilterTags by remember { mutableStateOf(emptySet<String>()) }
+  var excludedFilterTags by remember { mutableStateOf(emptySet<String>()) }
 
   // "无标签"是过滤区的特殊默认标签：选中它表示过滤出未设置任何标签的歌曲
   val noTagLabel = stringResource(R.string.tag_no_tag)
 
-  // 根据所选标签过滤歌曲（与=全部包含 / 或=任一包含；"无标签"特殊处理）
-  val filteredSongs = remember(songs, songTags, selectedFilterTags, filterMatchAll, noTagLabel) {
-    if (selectedFilterTags.isEmpty()) {
-      songs
-    } else {
-      val noTagSelected = noTagLabel in selectedFilterTags
-      val otherTags = selectedFilterTags - noTagLabel
-      songs.filter { song ->
-        val tags = songTags[song.data] ?: emptySet()
-        val isNoTag = tags.isEmpty()
-        val matchOthers = if (filterMatchAll) {
-          otherTags.all { it in tags }
-        } else {
-          otherTags.any { it in tags }
-        }
-        when {
-          // 未选"无标签"：只按其他标签过滤
-          !noTagSelected -> matchOthers
-          // 只选了"无标签"：过滤出所有未设置任何标签的歌曲
-          otherTags.isEmpty() -> isNoTag
-          // "无标签" + 其他标签：
-          // 与模式要求同时满足（无标签与含其他标签互斥，通常无结果）
-          filterMatchAll -> isNoTag && matchOthers
-          // 或模式：无标签 或 命中其他标签
-          else -> isNoTag || matchOthers
+  // 根据过滤模式与所选标签过滤歌曲
+  val filteredSongs =
+    remember(songs, songTags, includedFilterTags, excludedFilterTags, filterMode, noTagLabel) {
+      if (includedFilterTags.isEmpty() && excludedFilterTags.isEmpty()) {
+        songs
+      } else {
+        songs.filter { song ->
+          matchesTagFilter(
+            songTags[song.data] ?: emptySet(),
+            includedFilterTags,
+            excludedFilterTags,
+            filterMode,
+            noTagLabel
+          )
         }
       }
     }
-  }
 
   // 标签过滤变化后，将过滤结果同步为播放队列（保持当前歌曲不中断播放），
   // 这样后续的下一首/顺序/随机/单曲循环都以过滤后的列表为播放列表。
-  var lastFilter by remember { mutableStateOf<Pair<Set<String>, Boolean>?>(null) }
-  LaunchedEffect(selectedFilterTags, filterMatchAll) {
-    val currentFilter = selectedFilterTags to filterMatchAll
+  var lastFilter by remember { mutableStateOf<Pair<Set<String>, Set<String>>?>(null) }
+  LaunchedEffect(includedFilterTags, excludedFilterTags, filterMode) {
+    val currentFilter = includedFilterTags to excludedFilterTags
     val previous = lastFilter
     lastFilter = currentFilter
     // 首次组合不触发，避免覆盖恢复/已有的播放队列
     if (previous == null) {
       return@LaunchedEffect
     }
-    // 仅在"有标签过滤"或"从有过滤变为取消全部标签"时同步队列；
-    // 无标签时单纯切换"与/或"不改变列表，无需同步
-    if (selectedFilterTags.isEmpty() && previous.first.isEmpty()) {
+    // 仅在"有标签过滤"或"从有过滤变为取消全部标签"时同步队列
+    if (includedFilterTags.isEmpty() && excludedFilterTags.isEmpty() &&
+      previous.first.isEmpty() && previous.second.isEmpty()
+    ) {
       return@LaunchedEffect
     }
     if (filteredSongs.isNotEmpty()) {
@@ -198,17 +192,36 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
     if (filterExpanded) {
       TagFilterPanel(
         allTags = allTags + noTagLabel,
-        selectedTags = selectedFilterTags,
-        matchAll = filterMatchAll,
+        mode = filterMode,
+        includedTags = includedFilterTags,
+        excludedTags = excludedFilterTags,
         searchQuery = filterSearchQuery,
         onSearchQueryChange = { filterSearchQuery = it },
-        onMatchAllChange = { filterMatchAll = it },
-        onToggleTag = { tag ->
-          selectedFilterTags = if (tag in selectedFilterTags) {
-            selectedFilterTags - tag
-          } else {
-            selectedFilterTags + tag
+        onModeChange = { mode ->
+          filterMode = mode
+          // 选择后保存，下次打开应用保持上次的模式
+          settingVM.settingPrefs.tagFilterMode = mode.name
+          // 非互斥模式没有"排除"侧，清掉排除标签避免残留过滤
+          if (!mode.isExclusive) {
+            excludedFilterTags = emptySet()
           }
+        },
+        onToggleIncludeTag = { tag ->
+          includedFilterTags = if (tag in includedFilterTags) {
+            includedFilterTags - tag
+          } else {
+            includedFilterTags + tag
+          }
+          // 同一标签不能同时出现在包含与排除两侧
+          excludedFilterTags = excludedFilterTags - tag
+        },
+        onToggleExcludeTag = { tag ->
+          excludedFilterTags = if (tag in excludedFilterTags) {
+            excludedFilterTags - tag
+          } else {
+            excludedFilterTags + tag
+          }
+          includedFilterTags = includedFilterTags - tag
         },
         onManageClick = { libraryVM.showTagManageDialog() }
       )
@@ -267,6 +280,61 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
             mainVM.showMultiSelect(context, MultiSelectState.Where.Song, song)
           })
       }
+    }
+  }
+}
+
+/**
+ * 判断一首歌是否命中当前的标签过滤条件。
+ *
+ * [included] / [excluded] 为过滤区左右两侧选中的标签（含特殊标签 [noTagLabel]）：
+ * - 包含与：歌曲须包含 [included] 的全部标签
+ * - 包含或：歌曲包含 [included] 中任意一个标签即可
+ * - 互斥与：在"包含与"基础上，歌曲不能包含 [excluded] 中任何标签
+ * - 互斥或：在"包含或"基础上，歌曲不能包含 [excluded] 中任何标签
+ * - 全匹配：歌曲标签与 [included] 完全一致（不多不少）
+ *
+ * [noTagLabel]（"无标签"）表示歌曲没有任何标签。
+ */
+private fun matchesTagFilter(
+  songTags: Set<String>,
+  included: Set<String>,
+  excluded: Set<String>,
+  mode: TagFilterMode,
+  noTagLabel: String,
+): Boolean {
+  val noTagIncluded = noTagLabel in included
+  val noTagExcluded = noTagLabel in excluded
+  val includeTags = included - noTagLabel
+  val excludeTags = excluded - noTagLabel
+  val noTags = songTags.isEmpty()
+
+  // 排除侧（仅互斥模式生效）
+  if (mode.isExclusive) {
+    if (excludeTags.any { it in songTags }) return false
+    if (noTagExcluded && noTags) return false
+  }
+
+  if (included.isEmpty()) return true
+
+  return when (mode) {
+    TagFilterMode.EXACT -> when {
+      // 选中"无标签"时要求歌曲没有任何标签（同时选中其它标签则无结果）
+      noTagIncluded -> includeTags.isEmpty() && noTags
+      else -> songTags == includeTags
+    }
+
+    TagFilterMode.INCLUDE_OR, TagFilterMode.EXCLUDE_OR -> when {
+      !noTagIncluded -> includeTags.any { it in songTags }
+      includeTags.isEmpty() -> noTags
+      else -> noTags || includeTags.any { it in songTags }
+    }
+
+    else -> when {
+      !noTagIncluded -> includeTags.all { it in songTags }
+      includeTags.isEmpty() -> noTags
+      // "无标签"与"含其它标签"互斥，因此无结果
+      else -> false
     }
   }
 }

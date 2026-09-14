@@ -9,7 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,12 +34,17 @@ import remix.myplayer.data.model.audio.Genre
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.data.prefs.SettingPrefs
 import remix.myplayer.glide.UriFetcher
+import remix.myplayer.helper.ConvertFormat
+import remix.myplayer.helper.AudioConverter
+import remix.myplayer.helper.SongTagFile
+import remix.myplayer.misc.MediaScanner
 import remix.myplayer.repo.AlbumRepository
 import remix.myplayer.repo.ArtistRepository
 import remix.myplayer.repo.FolderRepository
 import remix.myplayer.repo.GenreRepository
 import remix.myplayer.repo.HistoryRepository
 import remix.myplayer.repo.PlayListRepository
+import remix.myplayer.repo.SearchHistoryRepository
 import remix.myplayer.repo.SongRepository
 import remix.myplayer.repo.SongTagRepository
 import remix.myplayer.repo.usecase.ExportPlayListUseCase
@@ -46,6 +54,12 @@ import remix.myplayer.service.MusicService
 import remix.myplayer.service.MusicServiceRemote
 import remix.myplayer.ui.dialog.BatchTagState
 import remix.myplayer.ui.dialog.DialogState
+import remix.myplayer.ui.dialog.ConvertConflict
+import remix.myplayer.ui.dialog.ConvertConflictChoice
+import remix.myplayer.ui.dialog.ConvertItem
+import remix.myplayer.ui.dialog.ConvertSource
+import remix.myplayer.ui.dialog.ConvertState
+import remix.myplayer.ui.dialog.ConvertStage
 import remix.myplayer.ui.dialog.SongTagManageState
 import remix.myplayer.ui.dialog.TagManageState
 import remix.myplayer.ui.nav.MessageNotifier
@@ -53,6 +67,11 @@ import remix.myplayer.util.PermissionUtil
 import remix.myplayer.util.ext.checkWorkerThread
 import remix.myplayer.util.ext.updateIf
 import timber.log.Timber
+import java.io.File
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -67,6 +86,7 @@ class LibraryViewModel @Inject constructor(
   private val folderRepo: FolderRepository,
   private val uriFetcher: UriFetcher,
   private val historyRepo: HistoryRepository,
+  private val searchHistoryRepo: SearchHistoryRepository,
   val settingPrefs: SettingPrefs,
   private val songTagRepo: SongTagRepository,
   private val exportPlayListUseCase: ExportPlayListUseCase,
@@ -115,6 +135,26 @@ class LibraryViewModel @Inject constructor(
     started = SharingStarted.WhileSubscribed(5000),
     initialValue = emptyList()
   )
+
+  // -------- 搜索记录 ----------
+  val searchHistories: StateFlow<List<String>> =
+    searchHistoryRepo.histories()
+      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+  /** 记录一次手动搜索（空串忽略，重复关键词累加次数） */
+  fun recordSearch(keyword: String) {
+    viewModelScope.launch { searchHistoryRepo.record(keyword) }
+  }
+
+  /** 删除单条搜索记录 */
+  fun removeSearchHistory(keyword: String) {
+    viewModelScope.launch { searchHistoryRepo.remove(keyword) }
+  }
+
+  /** 清空全部搜索记录 */
+  suspend fun clearSearchHistory() {
+    searchHistoryRepo.clear()
+  }
 
   private val _createPlaylistState = MutableStateFlow(CreatePlaylistState())
   val createPlaylistState = _createPlaylistState.asStateFlow()
@@ -261,6 +301,12 @@ class LibraryViewModel @Inject constructor(
     historyRepo.clear()
   }
 
+  /** 清空标签缓存索引并重新从音频文件读取标签（音频文件是标签的唯一真相源） */
+  fun resyncTags() = viewModelScope.launch {
+    songTagRepo.clearIndex()
+    fetchMedia(true)
+  }
+
   // -------- 单曲标签管理弹窗 ----------
   private val _songTagManageState = MutableStateFlow(SongTagManageState())
   val songTagManageState = _songTagManageState.asStateFlow()
@@ -284,11 +330,19 @@ class LibraryViewModel @Inject constructor(
 
   /** 将标签写入音频文件并关闭弹窗；成功 toast，失败弹窗显示原因 */
   fun saveSongTags(song: Song, tags: Set<String>) {
+    // 该格式不支持写标签：询问是否转换为 MP3 后再写
+    if (!SongTagFile.isWritable(song.data)) {
+      showConvertAsk(
+        items = listOf(ConvertItem(song, tags, needConvert = true)),
+        source = ConvertSource.SINGLE
+      )
+      return
+    }
     viewModelScope.launch {
       val result = songTagRepo.saveTags(song, tags)
       dismissSongTagManageDialog()
       result.onSuccess {
-        MessageNotifier.show(R.string.tag_save_success)
+        MessageNotifier.showCenter(R.string.tag_save_success)
         syncPlayQueueAfterTagSave()
       }.onFailure { e ->
         reportTagError(listOf(song to e))
@@ -307,6 +361,201 @@ class LibraryViewModel @Inject constructor(
       _songs.value = freshSongs
       MusicServiceRemote.reconcilePlayQueue(freshSongs)
     }
+  }
+
+  // -------- 不支持标签的格式：转换为 AAC / MP3 ----------
+  private val _convertState = MutableStateFlow(ConvertState())
+  val convertState = _convertState.asStateFlow()
+
+  private var conflictDeferred: CompletableDeferred<ConvertConflictChoice>? = null
+  private var convertJob: Job? = null
+
+  /** 询问是否把不支持标签的文件转换为目标格式（并关闭来源弹窗） */
+  private fun showConvertAsk(items: List<ConvertItem>, source: ConvertSource) {
+    val convertible = items.filter { it.needConvert }
+    if (convertible.isEmpty()) return
+    when (source) {
+      ConvertSource.SINGLE -> dismissSongTagManageDialog()
+      ConvertSource.BATCH -> dismissBatchTagDialog()
+    }
+    _convertState.updateIf(condition = { !it.dialogState.isOpen }) {
+      it.dialogState.show()
+      it.copy(
+        stage = ConvertStage.ASK,
+        source = source,
+        items = items,
+        convertCount = convertible.size,
+        currentIndex = 0,
+        progress = 0,
+        conflict = null
+      )
+    }
+  }
+
+  /** 用户确认转换 */
+  fun confirmConvert() {
+    if (_convertState.value.stage != ConvertStage.ASK) return
+    _convertState.update {
+      it.copy(stage = ConvertStage.CONVERTING, currentIndex = 1, progress = 0)
+    }
+    convertJob = viewModelScope.launch { runConversion(_convertState.value.items) }
+  }
+
+  /** 切换转换的目标格式（AAC / MP3） */
+  fun selectConvertFormat(format: ConvertFormat) {
+    _convertState.update { it.copy(format = format) }
+  }
+
+  /** 取消（询问阶段取消转换，或转换中中止） */
+  fun cancelConvert() {
+    convertJob?.cancel()
+    convertJob = null
+    conflictDeferred?.complete(ConvertConflictChoice.CANCEL)
+    conflictDeferred = null
+    dismissConvertDialog()
+  }
+
+  fun chooseConflictRename() = resolveConflict(ConvertConflictChoice.RENAME)
+
+  fun chooseConflictOverwrite() = resolveConflict(ConvertConflictChoice.OVERWRITE)
+
+  fun chooseConflictCancel() = resolveConflict(ConvertConflictChoice.CANCEL)
+
+  private fun resolveConflict(choice: ConvertConflictChoice) {
+    val deferred = conflictDeferred ?: return
+    conflictDeferred = null
+    _convertState.update { it.copy(stage = ConvertStage.CONVERTING, conflict = null) }
+    deferred.complete(choice)
+  }
+
+  private suspend fun askConflict(conflict: ConvertConflict): ConvertConflictChoice {
+    val deferred = CompletableDeferred<ConvertConflictChoice>()
+    conflictDeferred = deferred
+    _convertState.update { it.copy(stage = ConvertStage.CONFLICT, conflict = conflict) }
+    return deferred.await()
+  }
+
+  private fun dismissConvertDialog() {
+    _convertState.update {
+      it.dialogState.dismiss()
+      it.copy(
+        stage = ConvertStage.IDLE,
+        items = emptyList(),
+        convertCount = 0,
+        currentIndex = 0,
+        progress = 0,
+        conflict = null
+      )
+    }
+  }
+
+  /**
+   * 依次处理：需要转换的先转成同目录同名的目标格式（同名冲突时询问重命名/覆盖）再写标签，
+   * 本来就支持写标签的歌曲直接写。原文件保留不删除。
+   */
+  private suspend fun runConversion(items: List<ConvertItem>) {
+    val failures = mutableListOf<Pair<Song, Throwable>>()
+    val convertedFiles = mutableListOf<File>()
+    val format = _convertState.value.format
+    var convertedCount = 0
+
+    try {
+      var index = 0
+      for (item in items.filter { it.needConvert }) {
+        index++
+        _convertState.update {
+          it.copy(
+            stage = ConvertStage.CONVERTING,
+            currentIndex = index,
+            progress = 0,
+            conflict = null
+          )
+        }
+
+        val source = File(item.song.data)
+        if (!source.exists()) {
+          failures += item.song to IOException("File not found: ${item.song.data}")
+          continue
+        }
+
+        // 目标：同目录同名 + 目标格式扩展名
+        var target = File(source.parentFile, "${source.nameWithoutExtension}.${format.extension}")
+        if (target.exists()) {
+          val choice = askConflict(
+            ConvertConflict(target.name, target.length(), target.lastModified())
+          )
+          when (choice) {
+            ConvertConflictChoice.CANCEL -> {
+              dismissConvertDialog()
+              return
+            }
+
+            ConvertConflictChoice.RENAME -> target = uniqueTarget(source, format)
+            ConvertConflictChoice.OVERWRITE -> Unit
+          }
+        }
+
+        // 先写到临时文件，成功后覆盖到目标位置，避免留下半成品
+        val temp = File(
+          context.cacheDir,
+          "convert_${System.currentTimeMillis()}.${format.extension}"
+        )
+        try {
+          withContext(Dispatchers.IO) {
+            AudioConverter.convert(context, source, temp, format) { progress ->
+              _convertState.update { it.copy(progress = progress) }
+            }
+            temp.copyTo(target, overwrite = true)
+            val ok = SongTagFile.writeTags(target, context.cacheDir, item.tags)
+            check(ok) { "Failed to write tags: ${target.absolutePath}" }
+          }
+          convertedFiles += target
+          convertedCount++
+        } catch (e: CancellationException) {
+          throw e
+        } catch (e: Throwable) {
+          Timber.e(e, "convert to ${format.extension} failed: ${item.song.data}")
+          failures += item.song to e
+        } finally {
+          temp.delete()
+        }
+      }
+
+      // 不转换的歌曲直接写入标签
+      val writable = items.filter { !it.needConvert }
+      if (writable.isNotEmpty()) {
+        failures += songTagRepo.saveTags(
+          writable.map { it.song },
+          writable.associate { it.song.data to it.tags }
+        )
+      }
+    } finally {
+      dismissConvertDialog()
+    }
+
+    if (convertedFiles.isNotEmpty()) {
+      withContext(Dispatchers.IO) {
+        convertedFiles.forEach { file ->
+          runCatching { MediaScanner(context).scanSingleFile(context, file) }
+        }
+      }
+    }
+    if (convertedCount > 0) {
+      MessageNotifier.showCenter(R.string.convert_success, convertedCount)
+    }
+    if (failures.isNotEmpty()) {
+      reportTagError(failures)
+    }
+    syncPlayQueueAfterTagSave()
+  }
+
+  /** 重命名后的目标：原名 + yyyyMMddHHmmss 时间戳 */
+  private fun uniqueTarget(source: File, format: ConvertFormat): File {
+    val timestamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
+    return File(
+      source.parentFile,
+      "${source.nameWithoutExtension}_$timestamp.${format.extension}"
+    )
   }
 
   // -------- 标签管理弹窗（过滤区齿轮） ----------
@@ -332,11 +581,11 @@ class LibraryViewModel @Inject constructor(
     val tag = name.trim()
     if (tag.isEmpty()) return
     if (tag in allTags.value) {
-      MessageNotifier.show(R.string.tag_exists)
+      MessageNotifier.showCenter(R.string.tag_exists)
     } else {
       viewModelScope.launch {
         songTagRepo.addKnownTag(tag)
-        MessageNotifier.show(R.string.tag_created, tag)
+        MessageNotifier.showCenter(R.string.tag_created, tag)
       }
     }
   }
@@ -351,7 +600,7 @@ class LibraryViewModel @Inject constructor(
       val tagMap = songTags.value
       val songs = _songs.value.filter { song -> tagMap[song.data]?.contains(old) == true }
       if (songs.isEmpty()) {
-        MessageNotifier.show(R.string.tag_renamed)
+        MessageNotifier.showCenter(R.string.tag_renamed)
         return@launch
       }
       val tagsByPath = songs.associate { song ->
@@ -359,9 +608,9 @@ class LibraryViewModel @Inject constructor(
       }
       val failures = songTagRepo.saveTags(songs, tagsByPath)
       if (failures.isEmpty()) {
-        MessageNotifier.show(R.string.tag_renamed)
+        MessageNotifier.showCenter(R.string.tag_renamed)
       } else {
-        MessageNotifier.show(R.string.tag_rename_error)
+        MessageNotifier.showCenter(R.string.tag_rename_error)
         reportTagError(failures)
       }
       // 重写文件触发 MediaStore 重扫，歌曲 id 可能变化，同步播放队列
@@ -378,7 +627,7 @@ class LibraryViewModel @Inject constructor(
       val tagMap = songTags.value
       val songs = _songs.value.filter { song -> tagMap[song.data]?.contains(tag) == true }
       if (songs.isEmpty()) {
-        MessageNotifier.show(R.string.tag_deleted)
+        MessageNotifier.showCenter(R.string.tag_deleted)
         return@launch
       }
       val tagsByPath = songs.associate { song ->
@@ -386,9 +635,9 @@ class LibraryViewModel @Inject constructor(
       }
       val failures = songTagRepo.saveTags(songs, tagsByPath)
       if (failures.isEmpty()) {
-        MessageNotifier.show(R.string.tag_deleted)
+        MessageNotifier.showCenter(R.string.tag_deleted)
       } else {
-        MessageNotifier.show(R.string.tag_delete_error)
+        MessageNotifier.showCenter(R.string.tag_delete_error)
         reportTagError(failures)
       }
       // 重写文件触发 MediaStore 重扫，歌曲 id 可能变化，同步播放队列
@@ -418,17 +667,31 @@ class LibraryViewModel @Inject constructor(
   fun addTagsToSongs(songs: List<Song>, tags: Set<String>) {
     val valid = tags.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     if (valid.isEmpty()) return
+    val tagMap = songTags.value
+    val tagsByPath = songs.associate { song ->
+      song.data to ((tagMap[song.data] ?: emptySet()) + valid)
+    }
+    // 存在不支持写标签的格式：询问是否转换为 MP3
+    if (songs.any { !SongTagFile.isWritable(it.data) }) {
+      showConvertAsk(
+        items = songs.map { song ->
+          ConvertItem(
+            song = song,
+            tags = tagsByPath[song.data] ?: valid,
+            needConvert = !SongTagFile.isWritable(song.data)
+          )
+        },
+        source = ConvertSource.BATCH
+      )
+      return
+    }
     viewModelScope.launch {
-      val tagMap = songTags.value
-      val tagsByPath = songs.associate { song ->
-        song.data to ((tagMap[song.data] ?: emptySet()) + valid)
-      }
       val failures = songTagRepo.saveTags(songs, tagsByPath)
       dismissBatchTagDialog()
       if (failures.isEmpty()) {
-        MessageNotifier.show(R.string.tag_batch_success, songs.size)
+        MessageNotifier.showCenter(R.string.tag_batch_success, songs.size)
       } else {
-        MessageNotifier.show(
+        MessageNotifier.showCenter(
           R.string.tag_batch_partial_fail,
           songs.size - failures.size,
           failures.size
@@ -452,9 +715,9 @@ class LibraryViewModel @Inject constructor(
       val failures = songTagRepo.saveTags(songs, tagsByPath)
       dismissBatchTagDialog()
       if (failures.isEmpty()) {
-        MessageNotifier.show(R.string.tag_batch_success, songs.size)
+        MessageNotifier.showCenter(R.string.tag_batch_success, songs.size)
       } else {
-        MessageNotifier.show(
+        MessageNotifier.showCenter(
           R.string.tag_batch_partial_fail,
           songs.size - failures.size,
           failures.size
@@ -481,7 +744,14 @@ class LibraryViewModel @Inject constructor(
   private fun reportTagError(failures: List<Pair<Song, Throwable>>) {
     if (failures.isEmpty()) return
     val detail = failures.joinToString("\n\n") { (song, e) ->
-      "${song.data}\n${e.stackTraceToString()}"
+      // 格式不支持写入标签时给出明确、可读的提示，而不是整段堆栈
+      if (e is SongTagFile.UnsupportedFormatException) {
+        context.getString(R.string.tag_unsupported_format, song.showName)
+      } else if (e is AudioConverter.ConvertException) {
+        context.getString(R.string.convert_failed, song.showName)
+      } else {
+        "${song.data}\n${e.stackTraceToString()}"
+      }
     }
     failures.forEach { (song, e) ->
       Timber.e(e, "write tags failed: ${song.data}")

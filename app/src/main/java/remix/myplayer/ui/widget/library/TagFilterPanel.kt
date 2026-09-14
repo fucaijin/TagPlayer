@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,12 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,8 +33,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -40,11 +40,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.text.BasicTextField
 import remix.myplayer.R
+import remix.myplayer.data.model.misc.TagFilterMode
 import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.theme.icon
 import remix.myplayer.ui.widget.common.TextPrimary
+import remix.myplayer.util.ext.clickWithRipple
 
 /** 展开时的高度范围 */
 private val MinExpandedHeight = 140.dp
@@ -53,23 +54,28 @@ private val DefaultExpandedHeight = 240.dp
 /**
  * 歌曲列表顶部的标签过滤区（展开后的内容）。
  * 头部（标签过滤 + 箭头）由调用方放在"随机播放全部"同一行，点击后此面板显示在其下方。
- * 支持拖拽调整高度、搜索标签、"与/或"切换、管理入口。
+ *
+ * 支持拖拽调整高度、搜索标签、5 种过滤模式（包含与/包含或/互斥与/互斥或/全匹配）、管理入口。
+ * 互斥模式下标签区分为左右两半：左侧用于"包含"过滤，右侧用于"排除"过滤。
  */
 @Composable
 fun TagFilterPanel(
   allTags: Set<String>,
-  selectedTags: Set<String>,
-  matchAll: Boolean,
+  mode: TagFilterMode,
+  includedTags: Set<String>,
+  excludedTags: Set<String>,
   searchQuery: String,
   onSearchQueryChange: (String) -> Unit,
-  onMatchAllChange: (Boolean) -> Unit,
-  onToggleTag: (String) -> Unit,
+  onModeChange: (TagFilterMode) -> Unit,
+  onToggleIncludeTag: (String) -> Unit,
+  onToggleExcludeTag: (String) -> Unit,
   onManageClick: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val theme = LocalTheme.current
   val density = LocalDensity.current.density
   var panelHeightDp by rememberSaveable { mutableStateOf(DefaultExpandedHeight.value) }
+  var modeMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
   BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
     val maxPanelHeight = maxHeight * 0.6f
@@ -82,7 +88,7 @@ fun TagFilterPanel(
         .height(targetHeight)
         .background(theme.mainBackground)
     ) {
-      // 搜索 + 与/或 + 管理
+      // 搜索 + 过滤模式 + 管理
       Row(
         modifier = Modifier
           .fillMaxWidth()
@@ -117,21 +123,37 @@ fun TagFilterPanel(
           }
         }
 
-        TextPrimary(
-          stringResource(if (matchAll) R.string.tag_mode_and else R.string.tag_mode_or),
-          fontSize = 14.sp
-        )
-        Switch(
-          checked = matchAll,
-          onCheckedChange = onMatchAllChange,
-          modifier = Modifier
-            .padding(start = 12.dp)
-            .scale(0.75f),
-          colors = SwitchDefaults.colors().copy(
-            checkedTrackColor = theme.secondary,
-            uncheckedTrackColor = Color.Transparent
+        // 过滤模式：下拉选择（包含与/包含或/互斥与/互斥或/全匹配），选择后会保存
+        Box {
+          TextPrimary(
+            stringResource(mode.labelRes),
+            fontSize = 14.sp,
+            color = theme.secondary,
+            modifier = Modifier
+              .clickWithRipple { modeMenuExpanded = true }
+              .padding(horizontal = 6.dp, vertical = 4.dp)
           )
-        )
+          DropdownMenu(
+            expanded = modeMenuExpanded,
+            containerColor = theme.dialogBackground,
+            onDismissRequest = { modeMenuExpanded = false }
+          ) {
+            TagFilterMode.entries.forEach { item ->
+              DropdownMenuItem(
+                text = {
+                  Text(
+                    stringResource(item.labelRes),
+                    color = if (item == mode) theme.secondary else theme.textPrimary
+                  )
+                },
+                onClick = {
+                  modeMenuExpanded = false
+                  onModeChange(item)
+                }
+              )
+            }
+          }
+        }
 
         IconButton(onClick = onManageClick) {
           Icon(
@@ -144,45 +166,53 @@ fun TagFilterPanel(
 
       // 标签芯片（可按搜索词过滤、可滚动）
       val filteredTags = if (searchQuery.isBlank()) {
-        allTags
+        allTags.toList()
       } else {
         allTags.filter { it.contains(searchQuery.trim(), ignoreCase = true) }
       }
-      Column(
-        modifier = Modifier
-          .weight(1f)
-          .fillMaxWidth()
-          .verticalScroll(rememberScrollState())
-          .padding(horizontal = 16.dp, vertical = 4.dp)
-      ) {
-        if (filteredTags.isEmpty()) {
-          TextPrimary(stringResource(R.string.no_tag), fontSize = 13.sp, color = theme.textSecondary)
-        } else {
-          FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-          ) {
-            filteredTags.forEach { tag ->
-              val isSelected = tag in selectedTags
-              Surface(
-                shape = RoundedCornerShape(50),
-                color = if (isSelected) theme.secondary else theme.mainBackground,
-                border = BorderStroke(
-                  width = 1.dp,
-                  color = if (isSelected) theme.secondary else theme.textSecondary.copy(alpha = 0.5f)
-                ),
-                onClick = { onToggleTag(tag) }
-              ) {
-                Text(
-                  text = tag,
-                  fontSize = 13.sp,
-                  modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                  color = if (isSelected) theme.primaryReverse else theme.textPrimary
-                )
-              }
-            }
-          }
+
+      if (mode.isExclusive) {
+        // 互斥模式：左"包含"、右"排除"
+        Row(
+          modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+        ) {
+          TagChipColumn(
+            modifier = Modifier
+              .weight(1f)
+              .fillMaxHeight(),
+            title = stringResource(R.string.tag_filter_include),
+            tags = filteredTags,
+            selectedTags = includedTags,
+            onToggleTag = onToggleIncludeTag
+          )
+          Box(
+            modifier = Modifier
+              .width(1.dp)
+              .fillMaxHeight()
+              .background(theme.textSecondary.copy(alpha = 0.2f))
+          )
+          TagChipColumn(
+            modifier = Modifier
+              .weight(1f)
+              .fillMaxHeight(),
+            title = stringResource(R.string.tag_filter_exclude),
+            tags = filteredTags,
+            selectedTags = excludedTags,
+            onToggleTag = onToggleExcludeTag
+          )
         }
+      } else {
+        TagChipColumn(
+          modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth(),
+          title = null,
+          tags = filteredTags,
+          selectedTags = includedTags,
+          onToggleTag = onToggleIncludeTag
+        )
       }
 
       // 拖拽把手：上下拖动调整高度（dragAmount 是像素，按屏幕密度换算成 dp，与手指移动保持一致）
@@ -204,6 +234,62 @@ fun TagFilterPanel(
             .height(4.dp)
             .background(theme.textSecondary.copy(alpha = 0.4f), CircleShape)
         )
+      }
+    }
+  }
+}
+
+/** 一列标签芯片（可滚动），用于非互斥模式的单一列表与互斥模式的"包含/排除"两半 */
+@Composable
+private fun TagChipColumn(
+  modifier: Modifier,
+  title: String?,
+  tags: List<String>,
+  selectedTags: Set<String>,
+  onToggleTag: (String) -> Unit,
+) {
+  val theme = LocalTheme.current
+
+  Column(
+    modifier = modifier
+      .verticalScroll(rememberScrollState())
+      .padding(horizontal = 16.dp, vertical = 4.dp)
+  ) {
+    if (title != null) {
+      TextPrimary(title, fontSize = 12.sp, color = theme.textSecondary)
+    }
+    if (tags.isEmpty()) {
+      TextPrimary(
+        stringResource(R.string.no_tag),
+        fontSize = 13.sp,
+        color = theme.textSecondary,
+        modifier = Modifier.padding(top = 4.dp)
+      )
+    } else {
+      FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(top = 4.dp)
+      ) {
+        tags.forEach { tag ->
+          val isSelected = tag in selectedTags
+          Surface(
+            shape = RoundedCornerShape(50),
+            color = if (isSelected) theme.secondary else theme.mainBackground,
+            border = BorderStroke(
+              width = 1.dp,
+              color = if (isSelected) theme.secondary else theme.textSecondary.copy(alpha = 0.5f)
+            ),
+            onClick = { onToggleTag(tag) }
+          ) {
+            Text(
+              text = tag,
+              fontSize = 13.sp,
+              modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+              color = if (isSelected) theme.primaryReverse else theme.textPrimary
+            )
+          }
+        }
       }
     }
   }

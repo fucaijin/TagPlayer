@@ -82,8 +82,9 @@ class InAppUpdater @Inject constructor(
     }
 
     val release = try {
-      githubApi.fetchLatestRelease("rRemix", "APlayer")
+      githubApi.fetchLatestRelease(OWNER, REPO)
     } catch (e: Exception) {
+      // 访问不到 GitHub（如国内网络受限）时不提示、不更新
       Timber.tag(TAG).v("e: $e")
       return null
     }
@@ -101,9 +102,9 @@ class InAppUpdater @Inject constructor(
       return null
     }
 
-    // compare versionCode
+    // 从 tag（形如 v2.1.1.0）解析出版本号比较，解析失败视为无更新
     val versionCode = getOnlineVersionCode(release)
-    if (versionCode <= getLocalVersionCode()) {
+    if (versionCode <= 0 || versionCode <= getLocalVersionCode()) {
       if (showToast) {
         MessageNotifier.show(R.string.no_update)
       }
@@ -145,20 +146,27 @@ class InAppUpdater @Inject constructor(
     return versionCode
   }
 
+  /**
+   * 从 release 的 tag 解析 versionCode。
+   * tag 形如 v2.1.1.0（兼容 v2.1.1.0-tag 等后缀），映射为 a*10000 + b*1000 + c*100 + d*10；
+   * 解析失败返回 0（视为无更新）。
+   */
   fun getOnlineVersionCode(release: Release): Int {
-    //Release-v1.3.5.2-80
-    release.name?.run {
-      val numberAndCode = this.split("-")
-      if (numberAndCode.size < 2)
-        return 0
-      return numberAndCode[2].toInt()
-    }
-    return 0
+    val raw = release.tag_name?.takeIf { it.isNotBlank() } ?: release.name.orEmpty()
+    val match = VERSION_REGEX.find(raw) ?: return 0
+    val (major, minor, patch, build) = match.destructured
+    return major.toInt() * 10000 + minor.toInt() * 1000 + patch.toInt() * 100 + build.toInt() * 10
   }
 
   companion object {
 
     private const val TAG = "InAppUpdater"
+
+    /** 更新检查指向自己的仓库 */
+    private const val OWNER = "fucaijin"
+    private const val REPO = "TagPlayer"
+
+    private val VERSION_REGEX = Regex("""(\d+)\.(\d+)\.(\d+)\.(\d+)""")
 
     private const val UNIQUE_NAME = "download_apk"
 

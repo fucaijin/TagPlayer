@@ -8,6 +8,7 @@ import androidx.multidex.MultiDexApplication
 import com.hjq.permissions.XXPermissions
 import dagger.hilt.android.HiltAndroidApp
 import remix.myplayer.helper.AppMigration
+import remix.myplayer.helper.AppUsageTracker
 import remix.myplayer.helper.LanguageHelper.onConfigurationChanged
 import remix.myplayer.helper.LanguageHelper.saveSystemCurrentLanguage
 import remix.myplayer.helper.LanguageHelper.setApplicationLanguage
@@ -27,6 +28,9 @@ class App : MultiDexApplication() {
 
   @Inject
   lateinit var appMigration: AppMigration
+
+  @Inject
+  lateinit var appUsageTracker: AppUsageTracker
 
   override fun attachBaseContext(base: Context) {
     saveSystemCurrentLanguage()
@@ -50,6 +54,9 @@ class App : MultiDexApplication() {
     ThirdPartyInitializer.init(this@App)
 
     registerActivityLifecycleCallbacks(APlayerActivityManager())
+
+    // 数据分析：记录应用使用会话
+    registerActivityLifecycleCallbacks(appUsageTracker)
 
     hackTabMinWidth()
   }

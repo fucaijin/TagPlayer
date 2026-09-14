@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -86,11 +87,13 @@ fun ListSong(
       verticalAlignment = Alignment.CenterVertically
     ) {
       if (num != null) {
+        // 序号宽度随位数自适应（最少 40dp 保证对齐），超过 99999 显示 "99999+"
         TextPrimary(
-          if (num > 999) "999+" else num.toString(),
+          if (num > MAX_LIST_NUMBER) "${MAX_LIST_NUMBER}+" else num.toString(),
           textAlign = TextAlign.Center,
+          maxLine = 1,
           modifier = Modifier
-            .width(40.dp)
+            .widthIn(min = 40.dp)
             .padding(horizontal = 4.dp)
         )
       } else {
@@ -154,3 +157,6 @@ fun ListSong(
   }
 
 }
+
+/** 序号最大显示值，超过则显示为 "99999+" */
+private const val MAX_LIST_NUMBER = 99999

@@ -45,8 +45,8 @@ android {
         minSdk = 21
         targetSdk = 35
 
-        versionCode = 21100
-        versionName = "2.1.1.0"
+        versionCode = 21200
+        versionName = "2.1.2.0"
 
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled = true
@@ -76,7 +76,7 @@ android {
             )
         }
 
-        setProperty("archivesBaseName", "APlayer-v${versionName}")
+        setProperty("archivesBaseName", "TagPlayer-v${versionName}")
     }
 
     androidResources {
@@ -230,7 +230,7 @@ android {
                 }
                 if (sortPrefix.isNotEmpty()) {
                     (output as BaseVariantOutputImpl).outputFileName =
-                        "${sortPrefix}-APlayer-v${variant.versionName}-${flavor}-release.apk"
+                        "${sortPrefix}-TagPlayer-v${variant.versionName}-${flavor}-release.apk"
                 }
             }
         }
@@ -315,6 +315,8 @@ dependencies {
     implementation(libs.androidx.profileinstaller)
     "baselineProfile"(project(":baselineprofile"))
     implementation("org.jaudiotagger:jaudiotagger:2.0.1")
+    // 纯 Java 的 LAME 移植，用于 PCM -> MP3 编码（不支持标签的格式转换用）
+    implementation("de.sciss:jump3r:1.0.5")
 }
 
 // 上传mapping文件

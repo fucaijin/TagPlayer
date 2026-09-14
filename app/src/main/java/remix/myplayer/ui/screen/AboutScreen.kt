@@ -74,8 +74,9 @@ import remix.myplayer.util.ext.zipOutputStream
 import timber.log.Timber
 import java.io.File
 
-private const val REPO_URL = "https://github.com/rRemix/APlayer"
+private const val REPO_URL = "https://github.com/fucaijin/TagPlayer"
 private const val RELEASES_URL = "$REPO_URL/releases"
+private const val RELEASES_LATEST_URL = "$REPO_URL/releases/latest"
 private const val PRIVACY_POLICY_URL = "$REPO_URL/blob/master/PrivacyPolicy.md"
 private const val PLAY_STORE_PACKAGE = "com.android.vending"
 private const val PLAY_STORE_MARKET_URL = "market://details?id=remix.myplayer"
@@ -188,6 +189,12 @@ private fun AboutHeader(
         onClick = { appInfoDialogState.show() },
         onLongClick = { appInfoDialogState.show() }
       )
+  )
+
+  TextSecondary(
+    text = stringResource(id = R.string.about_based_on),
+    fontSize = 12.sp,
+    modifier = Modifier.padding(top = 4.dp)
   )
 }
 
@@ -325,7 +332,7 @@ private fun rateApp(context: Context) {
 private fun shareApp(context: Context) {
   ShareCompat.IntentBuilder(context).setType("text/plain")
     .setChooserTitle(R.string.about_share_chooser)
-    .setText(context.getString(R.string.about_share_message, PLAY_STORE_WEB_URL))
+    .setText(context.getString(R.string.about_share_message, RELEASES_LATEST_URL))
     .startChooser()
 }
 

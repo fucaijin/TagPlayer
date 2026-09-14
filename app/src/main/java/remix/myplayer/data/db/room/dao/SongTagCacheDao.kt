@@ -33,4 +33,7 @@ abstract class SongTagCacheDao {
 
   @Query("DELETE FROM SongTagCache WHERE path IN (:paths)")
   abstract suspend fun deleteByPaths(paths: List<String>)
+
+  @Query("DELETE FROM SongTagCache")
+  abstract suspend fun clearAll()
 }

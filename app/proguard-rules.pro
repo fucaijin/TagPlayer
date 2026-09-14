@@ -109,3 +109,7 @@
 # jaudiotagger 2.0.1：Mp4AtomTree（调试用 Swing 树）引用 Android 上不存在的 javax.swing.tree.*
 # R8 full mode 下缺失类会报 "Missing classes detected" 错误，用 -dontwarn 抑制（该代码路径运行时不会被调用）
 -dontwarn javax.swing.**
+
+# jump3r（纯 Java LAME）里的 LameEncoder/Main 等类引用 Android 上不存在的 javax.sound.sampled.*
+# 本项目只用其 de.sciss.jump3r.mp3.Lame 做编码（自写薄封装），不会走到这些类
+-dontwarn javax.sound.**

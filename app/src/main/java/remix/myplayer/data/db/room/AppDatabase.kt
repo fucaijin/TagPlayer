@@ -14,18 +14,29 @@ import remix.myplayer.data.db.DbMigrations.migration5to6
 import remix.myplayer.data.db.DbMigrations.migration6to7
 import remix.myplayer.data.db.DbMigrations.migration7to8
 import remix.myplayer.data.db.DbMigrations.migration8to9
+import remix.myplayer.data.db.DbMigrations.migration9to10
+import remix.myplayer.data.db.DbMigrations.migration10to11
+import remix.myplayer.data.db.DbMigrations.migration11to12
+import remix.myplayer.data.db.room.dao.AppOpenSessionDao
 import remix.myplayer.data.db.room.dao.HistoryDao
 import remix.myplayer.data.db.room.dao.MetaDataCacheDao
+import remix.myplayer.data.db.room.dao.PlayEventDao
+import remix.myplayer.data.db.room.dao.PlayHourStatDao
 import remix.myplayer.data.db.room.dao.PlayListDao
 import remix.myplayer.data.db.room.dao.PlayQueueDao
+import remix.myplayer.data.db.room.dao.SearchHistoryDao
 import remix.myplayer.data.db.room.dao.SmbDao
 import remix.myplayer.data.db.room.dao.SongTagCacheDao
 import remix.myplayer.data.db.room.dao.TagDao
 import remix.myplayer.data.db.room.dao.WebDavDao
+import remix.myplayer.data.db.room.entity.AppOpenSession
 import remix.myplayer.data.db.room.entity.History
 import remix.myplayer.data.db.room.entity.MetaDataCache
+import remix.myplayer.data.db.room.entity.PlayEvent
+import remix.myplayer.data.db.room.entity.PlayHourStat
 import remix.myplayer.data.db.room.entity.PlayList
 import remix.myplayer.data.db.room.entity.PlayQueue
+import remix.myplayer.data.db.room.entity.SearchHistory
 import remix.myplayer.data.db.room.entity.Smb
 import remix.myplayer.data.db.room.entity.SongTagCache
 import remix.myplayer.data.db.room.entity.TagEntity
@@ -47,7 +58,11 @@ import timber.log.Timber
     Smb::class,
     MetaDataCache::class,
     SongTagCache::class,
-    TagEntity::class
+    TagEntity::class,
+    SearchHistory::class,
+    PlayEvent::class,
+    PlayHourStat::class,
+    AppOpenSession::class
   ], version = AppDatabase.VERSION, exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -68,9 +83,17 @@ abstract class AppDatabase : RoomDatabase() {
 
   abstract fun tagDao(): TagDao
 
+  abstract fun searchHistoryDao(): SearchHistoryDao
+
+  abstract fun playEventDao(): PlayEventDao
+
+  abstract fun playHourStatDao(): PlayHourStatDao
+
+  abstract fun appOpenSessionDao(): AppOpenSessionDao
+
   companion object {
 
-    const val VERSION = 9
+    const val VERSION = 12
 
     @Volatile
     private var INSTANCE: AppDatabase? = null
@@ -97,6 +120,9 @@ abstract class AppDatabase : RoomDatabase() {
           .addMigrations(migration6to7)
           .addMigrations(migration7to8)
           .addMigrations(migration8to9)
+          .addMigrations(migration9to10)
+          .addMigrations(migration10to11)
+          .addMigrations(migration11to12)
           .build()
       database.invalidationTracker.addObserver(object :
         InvalidationTracker.Observer(PlayList.TABLE_NAME, PlayQueue.TABLE_NAME) {

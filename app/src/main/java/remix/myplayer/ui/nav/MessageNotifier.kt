@@ -3,6 +3,7 @@ package remix.myplayer.ui.nav
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.view.Gravity
 import android.widget.Toast
 import androidx.annotation.StringRes
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -23,6 +24,10 @@ object MessageNotifier {
   private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
   internal val messages = _messages.asSharedFlow()
 
+  /** 屏幕正中央的短提示（标签相关操作使用，约 1 秒） */
+  private val _centerMessages = MutableSharedFlow<String>(extraBufferCapacity = 1)
+  internal val centerMessages = _centerMessages.asSharedFlow()
+
   private val mainHandler = Handler(Looper.getMainLooper())
 
   fun show(message: String) {
@@ -35,27 +40,47 @@ object MessageNotifier {
     if (Util.isAppOnForeground) {
       _messages.tryEmit(message)
     } else {
-      showToast(message)
+      showToast(message, Gravity.BOTTOM)
     }
   }
 
 
   fun show(@StringRes resId: Int, vararg formatArgs: Any) {
-    val msg = if (formatArgs.isNotEmpty()) {
+    show(getMessage(resId, formatArgs))
+  }
+
+  /** 屏幕正中央的短提示（标签保存等操作结果，约 1 秒） */
+  fun showCenter(message: String) {
+    if (Util.isAppOnForeground) {
+      _centerMessages.tryEmit(message)
+    } else {
+      showToast(message, Gravity.CENTER)
+    }
+  }
+
+  /** 屏幕正中央的短提示（标签保存等操作结果，约 1 秒） */
+  fun showCenter(@StringRes resId: Int, vararg formatArgs: Any) {
+    showCenter(getMessage(resId, formatArgs))
+  }
+
+  private fun getMessage(@StringRes resId: Int, formatArgs: Array<out Any>): String {
+    return if (formatArgs.isNotEmpty()) {
       App.context.getString(resId, *formatArgs)
     } else {
       App.context.getString(resId)
     }
-    show(msg)
   }
 
-  private fun showToast(message: String) {
+  private fun showToast(message: String, gravity: Int) {
+    val show = {
+      Toast.makeText(App.context, message, Toast.LENGTH_SHORT).apply {
+        setGravity(gravity, 0, 0)
+      }.show()
+    }
     if (Looper.myLooper() == Looper.getMainLooper()) {
-      Toast.makeText(App.context, message, Toast.LENGTH_SHORT).show()
+      show()
     } else {
-      mainHandler.post {
-        Toast.makeText(App.context, message, Toast.LENGTH_SHORT).show()
-      }
+      mainHandler.post { show() }
     }
   }
 }
