@@ -122,6 +122,9 @@
   <string name="stats_day_start">一天分界点</string>
   <string name="stats_day_start_tip">该时间之前算作前一天（默认 5 点）</string>
   <string name="stats_day_start_value">%1$d 点</string>
+  <string name="stats_clear">清除统计数据</string>
+  <string name="stats_clear_confirm">将删除全部历史播放与使用统计（播放会话、每日与时段统计、应用使用记录），标签和搜索记录不受影响。此操作不可恢复，确定继续？</string>
+  <string name="stats_clear_success">已清除统计数据</string>
   <string name="stats_range">统计区间</string>
   <string name="stats_range_7d">近7天</string>
   <string name="stats_range_30d">近30天</string>
@@ -144,6 +147,8 @@
   <string name="stats_skipped">跳过排行</string>
   <string name="stats_skipped_tip">未播放到 80% 就切歌的次数；跳过率=跳过次数/播放次数</string>
   <string name="stats_daily_duration">每日播放时长</string>
+  <string name="stats_trend">听歌时长趋势</string>
+  <string name="stats_trend_tip">纵轴为当天听歌分钟数；区间超过 30 天时按自然周/月归集，取桶内日均值</string>
   <string name="stats_daily_active">每日最早/最晚听歌</string>
   <string name="stats_earliest">最早</string>
   <string name="stats_latest">最晚</string>

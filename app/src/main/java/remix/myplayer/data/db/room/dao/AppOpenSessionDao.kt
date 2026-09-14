@@ -27,4 +27,7 @@ abstract class AppOpenSessionDao {
 
   @Query("DELETE FROM AppOpenSession WHERE openTime < :before")
   abstract suspend fun deleteBefore(before: Long)
+
+  @Query("DELETE FROM AppOpenSession")
+  abstract suspend fun clearAll()
 }

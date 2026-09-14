@@ -20,4 +20,7 @@ abstract class PlayHourStatDao {
 
   @Query("DELETE FROM PlayHourStat WHERE hourStart < :before")
   abstract suspend fun deleteBefore(before: Long)
+
+  @Query("DELETE FROM PlayHourStat")
+  abstract suspend fun clearAll()
 }

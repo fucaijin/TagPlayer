@@ -1,5 +1,6 @@
 package remix.myplayer.ui.screen
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -33,11 +34,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import remix.myplayer.R
 import remix.myplayer.repo.DayPlayStat
+import remix.myplayer.repo.ListeningTrendPoint
 import remix.myplayer.repo.SongPlayStat
 import remix.myplayer.repo.StatsTimeUtil
 import remix.myplayer.ui.nav.MessageNotifier
@@ -54,6 +61,7 @@ import remix.myplayer.ui.widget.common.TextSecondary
 import remix.myplayer.util.ext.clickWithRipple
 import remix.myplayer.viewmodel.StatsRangePreset
 import remix.myplayer.viewmodel.dataAnalysisViewModel
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /**
@@ -185,6 +193,18 @@ fun DataAnalysisReport(modifier: Modifier = Modifier) {
             StatsTimeUtil.formatDuration(day.playedMs)
           )
         }
+      }
+    }
+
+    // 听歌时长趋势折线图
+    StatsCard(
+      title = stringResource(R.string.stats_trend),
+      tip = stringResource(R.string.stats_trend_tip)
+    ) {
+      if (state.trend.isEmpty()) {
+        EmptyTip()
+      } else {
+        ListeningTrendChart(state.trend)
       }
     }
 
@@ -321,14 +341,14 @@ private fun StatsRangeSelector(
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .horizontalScroll(rememberScrollState())
         .padding(horizontal = 16.dp),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-      DateInput(value = fromText, onValueChange = onFromChange, modifier = Modifier.width(84.dp))
+      // 两个日期框撑开剩余宽度，"分析"按钮固定在最右侧
+      DateInput(value = fromText, onValueChange = onFromChange, modifier = Modifier.weight(1f))
       TextSecondary("~", fontSize = 13.sp)
-      DateInput(value = toText, onValueChange = onToChange, modifier = Modifier.width(84.dp))
+      DateInput(value = toText, onValueChange = onToChange, modifier = Modifier.weight(1f))
       PresetDropdown(preset, onSelectPreset)
       Surface(
         shape = RoundedCornerShape(50),
@@ -585,6 +605,104 @@ private fun DailyDurationChart(days: List<DayPlayStat>, dayStartHour: Int) {
       }
     }
   }
+}
+
+/** 听歌时长趋势折线图：横轴为所选区间（长区间按周/月归集），纵轴为日均听歌分钟数 */
+@Composable
+private fun ListeningTrendChart(points: List<ListeningTrendPoint>) {
+  val theme = LocalTheme.current
+  val textMeasurer = rememberTextMeasurer()
+  val labelStyle = TextStyle(color = theme.textSecondary, fontSize = 9.sp)
+  val gridColor = theme.textSecondary.copy(alpha = 0.15f)
+  val lineColor = theme.secondary
+
+  // 纵轴上限取整：小值向上取整到 1 分钟，大值取整到 10 分钟
+  val rawMax = points.maxOf { it.minutesPerDay }
+  val maxY = when {
+    rawMax <= 10f -> ceil(rawMax).coerceAtLeast(1f)
+    else -> ceil(rawMax / 10f) * 10f
+  }
+
+  Canvas(
+    modifier = Modifier
+      .fillMaxWidth()
+      .height(150.dp)
+  ) {
+    val leftPad = 30.dp.toPx()
+    val topPad = 10.dp.toPx()
+    val bottomPad = 16.dp.toPx()
+    val plotWidth = (size.width - leftPad).coerceAtLeast(1f)
+    val plotHeight = (size.height - topPad - bottomPad).coerceAtLeast(1f)
+
+    fun xOf(index: Int): Float = if (points.size == 1) {
+      leftPad + plotWidth / 2f
+    } else {
+      leftPad + plotWidth * index / (points.size - 1).toFloat()
+    }
+
+    fun yOf(minutes: Float): Float = topPad + plotHeight * (1f - minutes / maxY)
+
+    // 横向网格线（0 / 中值 / 上限）
+    listOf(0f, 0.5f, 1f).forEach { ratio ->
+      val y = topPad + plotHeight * ratio
+      drawLine(
+        color = gridColor,
+        start = Offset(leftPad, y),
+        end = Offset(size.width, y),
+        strokeWidth = 1.dp.toPx()
+      )
+    }
+
+    // 纵轴刻度（上限与 0）
+    listOf(maxY, 0f).forEach { value ->
+      val layout = textMeasurer.measure(value.roundToInt().toString(), labelStyle)
+      drawText(
+        textLayoutResult = layout,
+        topLeft = Offset(
+          x = (leftPad - 4.dp.toPx() - layout.size.width).coerceAtLeast(0f),
+          y = yOf(value) - layout.size.height / 2f
+        )
+      )
+    }
+
+    // 折线
+    val path = Path()
+    points.forEachIndexed { index, point ->
+      val x = xOf(index)
+      val y = yOf(point.minutesPerDay)
+      if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    drawPath(path = path, color = lineColor, style = Stroke(width = 2.dp.toPx()))
+
+    // 数据点
+    points.forEachIndexed { index, point ->
+      drawCircle(
+        color = lineColor,
+        radius = 2.5.dp.toPx(),
+        center = Offset(xOf(index), yOf(point.minutesPerDay))
+      )
+    }
+
+    // 横轴标签（最多 4 个）
+    trendLabelIndexes(points.size).forEach { index ->
+      val layout = textMeasurer.measure(points[index].label, labelStyle)
+      val centerX = xOf(index)
+      drawText(
+        textLayoutResult = layout,
+        topLeft = Offset(
+          x = (centerX - layout.size.width / 2f).coerceIn(0f, size.width - layout.size.width),
+          y = size.height - bottomPad + 2.dp.toPx()
+        )
+      )
+    }
+  }
+}
+
+/** 横轴最多显示 4 个标签：首尾 + 均分的两个中间点 */
+private fun trendLabelIndexes(size: Int): List<Int> = if (size <= 4) {
+  (0 until size).toList()
+} else {
+  listOf(0, size / 3, size * 2 / 3, size - 1).distinct()
 }
 
 /**

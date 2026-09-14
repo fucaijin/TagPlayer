@@ -46,6 +46,17 @@ data class NameCountStat(val name: String, val count: Int)
 /** 标签播放次数 */
 data class TagPlayStat(val tag: String, val playCount: Int)
 
+/** 听歌时长趋势折线图的一个点 */
+data class ListeningTrendPoint(
+  /** 横轴标签：按天/周为 MM-dd，按月为 yyyy-MM */
+  val label: String,
+  /** 桶内日均听歌分钟数 */
+  val minutesPerDay: Float
+)
+
+/** 趋势图的归集单位 */
+enum class TrendUnit { DAY, WEEK, MONTH }
+
 /** 应用使用统计 */
 data class AppUsageStat(
   val openCount: Int,
@@ -123,6 +134,13 @@ class PlayStatsRepository @Inject constructor(
     appDao.deleteBefore(before)
   }
 
+  /** 清除全部历史统计（播放会话、每小时统计、应用使用会话），不影响标签与搜索记录 */
+  suspend fun clearAllStats() {
+    eventDao.clearAll()
+    hourDao.clearAll()
+    appDao.clearAll()
+  }
+
   // -------- 聚合 --------
 
   /** 播放次数排行（"完整播放"才计数） */
@@ -195,6 +213,57 @@ class PlayStatsRepository @Inject constructor(
       cells[day][hour] += stat.playedMs
     }
     return cells
+  }
+
+  /**
+   * 听歌时长趋势：把每小时统计按"自然天/自然周/自然月"归集，取桶内日均听歌分钟数。
+   *
+   * 区间 ≤ 30 天按天；≤ 182 天（约半年）按自然周（周一为首日）；更长按自然月。
+   * [from] 为 0（全部历史）时从最早的数据开始；区间内没有播放的天按 0 计入日均。
+   */
+  fun listeningTrend(
+    hourStats: List<PlayHourStat>,
+    from: Long,
+    to: Long,
+  ): List<ListeningTrendPoint> {
+    if (hourStats.isEmpty()) return emptyList()
+    val hour = dayStartHour
+    val fromBucket = if (from > 0) {
+      StatsTimeUtil.dayBucket(from, hour)
+    } else {
+      StatsTimeUtil.dayBucket(hourStats.minOf { it.hourStart }, hour)
+    }
+    val toBucket = StatsTimeUtil.dayBucket(to, hour)
+    if (toBucket < fromBucket) return emptyList()
+
+    val unit = when {
+      toBucket - fromBucket + 1 <= 30 -> TrendUnit.DAY
+      toBucket - fromBucket + 1 <= 182 -> TrendUnit.WEEK
+      else -> TrendUnit.MONTH
+    }
+
+    // 先把每小时统计归到"天"，再按归集单位分桶（没有播放的天也算进桶内天数）
+    val playedMsByDay = mutableMapOf<Long, Long>()
+    hourStats.forEach { stat ->
+      val day = StatsTimeUtil.dayBucket(stat.hourStart, hour)
+      playedMsByDay[day] = (playedMsByDay[day] ?: 0L) + stat.playedMs
+    }
+
+    val playedByKey = mutableMapOf<String, Long>()
+    val daysByKey = mutableMapOf<String, Int>()
+    for (day in fromBucket..toBucket) {
+      val key = StatsTimeUtil.trendBucketKey(StatsTimeUtil.bucketStartTime(day, hour), unit)
+      playedByKey[key] = (playedByKey[key] ?: 0L) + (playedMsByDay[day] ?: 0L)
+      daysByKey[key] = (daysByKey[key] ?: 0) + 1
+    }
+
+    return playedByKey.keys.sorted().map { key ->
+      val days = daysByKey.getValue(key).coerceAtLeast(1)
+      ListeningTrendPoint(
+        label = StatsTimeUtil.trendBucketLabel(key),
+        minutesPerDay = playedByKey.getValue(key) / 60_000f / days
+      )
+    }
   }
 
   /** 标签播放次数排行（一首歌的每个标签都计入） */
@@ -307,6 +376,24 @@ object StatsTimeUtil {
     val calendar = Calendar.getInstance().apply { timeInMillis = timeMs }
     return (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7
   }
+
+  /**
+   * 趋势图归集键：同一天/同一周/同一月得到同样的键，且可直接按字典序排序。
+   * 按周取该周周一的日期，因此键形如 yyyy-MM-dd（天/周）或 yyyy-MM（月）。
+   */
+  fun trendBucketKey(dayStartMs: Long, unit: TrendUnit): String {
+    val calendar = Calendar.getInstance().apply { timeInMillis = dayStartMs }
+    when (unit) {
+      TrendUnit.DAY -> Unit
+      TrendUnit.WEEK -> calendar.add(Calendar.DAY_OF_MONTH, -dayOfWeekIndex(dayStartMs))
+      TrendUnit.MONTH -> calendar.set(Calendar.DAY_OF_MONTH, 1)
+    }
+    val pattern = if (unit == TrendUnit.MONTH) "yyyy-MM" else "yyyy-MM-dd"
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(calendar.timeInMillis))
+  }
+
+  /** 趋势图横轴短标签：天/周显示 MM-dd，月显示 yyyy-MM */
+  fun trendBucketLabel(key: String): String = if (key.length > 7) key.substring(5) else key
 
   /** 格式化天序号为 yyyy-MM-dd */
   fun formatDay(bucket: Long, dayStartHour: Int): String {

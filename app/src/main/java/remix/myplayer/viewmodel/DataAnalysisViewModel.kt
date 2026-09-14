@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import remix.myplayer.R
 import remix.myplayer.repo.AppUsageStat
 import remix.myplayer.repo.DayPlayStat
+import remix.myplayer.repo.ListeningTrendPoint
 import remix.myplayer.repo.NameCountStat
 import remix.myplayer.repo.PlayStatsRepository
 import remix.myplayer.repo.SearchHistoryRepository
@@ -19,6 +20,7 @@ import remix.myplayer.repo.SongPlayStat
 import remix.myplayer.repo.SongTagRepository
 import remix.myplayer.repo.StatsTimeUtil
 import remix.myplayer.repo.TagPlayStat
+import remix.myplayer.ui.nav.MessageNotifier
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -54,6 +56,8 @@ data class DataAnalysisState(
   val durationList: List<SongPlayStat> = emptyList(),
   val skippedList: List<SongPlayStat> = emptyList(),
   val dailyList: List<DayPlayStat> = emptyList(),
+  /** 听歌时长趋势（折线图） */
+  val trend: List<ListeningTrendPoint> = emptyList(),
   val activeList: List<DayPlayStat> = emptyList(),
   val tagCounts: List<NameCountStat> = emptyList(),
   val tagPlays: List<TagPlayStat> = emptyList(),
@@ -100,6 +104,15 @@ class DataAnalysisViewModel @Inject constructor(
     _state.value = _state.value.copy(customRange = true, from = from, to = to)
     load()
     return true
+  }
+
+  /** 清除全部历史统计（播放会话、每日/时段统计、应用使用记录），随后重新加载报表 */
+  fun clearAllStats() {
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) { statsRepo.clearAllStats() }
+      MessageNotifier.show(R.string.stats_clear_success)
+      load()
+    }
   }
 
   fun togglePlayCountOrder() {
@@ -163,6 +176,7 @@ class DataAnalysisViewModel @Inject constructor(
           duration = statsRepo.durationRanking(events, !current.durationDesc),
           skipped = statsRepo.skippedRanking(events, !current.skippedDesc),
           daily = statsRepo.dailyPlayDurations(hourStats),
+          trend = statsRepo.listeningTrend(hourStats, from, to),
           active = statsRepo.dailyActiveTimes(activeEvents),
           tagCounts = statsRepo.tagSongCounts(tagsByPath),
           tagPlays = statsRepo.tagPlayRanking(events, tagsByPath, !current.tagPlayDesc),
@@ -179,6 +193,7 @@ class DataAnalysisViewModel @Inject constructor(
         durationList = result.duration,
         skippedList = result.skipped,
         dailyList = result.daily,
+        trend = result.trend,
         activeList = result.active,
         tagCounts = result.tagCounts,
         tagPlays = result.tagPlays,
@@ -251,6 +266,7 @@ class DataAnalysisViewModel @Inject constructor(
     val duration: List<SongPlayStat>,
     val skipped: List<SongPlayStat>,
     val daily: List<DayPlayStat>,
+    val trend: List<ListeningTrendPoint>,
     val active: List<DayPlayStat>,
     val tagCounts: List<NameCountStat>,
     val tagPlays: List<TagPlayStat>,

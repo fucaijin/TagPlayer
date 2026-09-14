@@ -123,6 +123,9 @@
   <string name="stats_day_start">Start of a day</string>
   <string name="stats_day_start_tip">Time before this hour counts as the previous day (default 5 AM)</string>
   <string name="stats_day_start_value">%1$d o\'clock</string>
+  <string name="stats_clear">Clear stats</string>
+  <string name="stats_clear_confirm">This deletes all historical play/usage statistics (play sessions, daily and hourly stats, app usage records). Tags and search history are kept. This cannot be undone. Continue?</string>
+  <string name="stats_clear_success">Statistics cleared</string>
   <string name="stats_range">Date range</string>
   <string name="stats_range_7d">Last 7 days</string>
   <string name="stats_range_30d">Last 30 days</string>
@@ -145,6 +148,8 @@
   <string name="stats_skipped">Most skipped</string>
   <string name="stats_skipped_tip">Skips before reaching 80%; rate = skips / plays</string>
   <string name="stats_daily_duration">Listening time per day</string>
+  <string name="stats_trend">Listening time trend</string>
+  <string name="stats_trend_tip">Minutes listened per day; for ranges longer than 30 days, data is grouped by week/month and averaged per day</string>
   <string name="stats_daily_active">Earliest / latest listening per day</string>
   <string name="stats_earliest">Earliest</string>
   <string name="stats_latest">Latest</string>

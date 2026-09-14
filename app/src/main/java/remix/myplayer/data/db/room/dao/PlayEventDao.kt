@@ -39,6 +39,9 @@ abstract class PlayEventDao {
   @Query("DELETE FROM PlayEvent WHERE startTime < :before")
   abstract suspend fun deleteBefore(before: Long)
 
+  @Query("DELETE FROM PlayEvent")
+  abstract suspend fun clearAll()
+
   @Query("SELECT COUNT(*) FROM PlayEvent")
   abstract suspend fun count(): Int
 }
