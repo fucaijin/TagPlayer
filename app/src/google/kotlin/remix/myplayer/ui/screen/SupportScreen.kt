@@ -32,6 +32,7 @@ import com.android.billingclient.api.BillingClient.BillingResponseCode
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.ConsumeParams
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.ProductDetailsResponseListener
 import com.android.billingclient.api.Purchase
@@ -81,7 +82,11 @@ fun SupportScreen() {
 
     val billingClient = remember(activity) {
       BillingClient.newBuilder(activity)
-        .enablePendingPurchases()
+        .enablePendingPurchases(
+          PendingPurchasesParams.newBuilder()
+            .enableOneTimeProducts()
+            .build()
+        )
         .setListener(purchasesUpdatedListener)
         .build()
     }
@@ -93,16 +98,17 @@ fun SupportScreen() {
     val productDetails = remember { mutableStateListOf<ProductDetails>() }
 
     val productListener = remember {
-      ProductDetailsResponseListener { result, details ->
-        Timber.v("onProductDetailsResponse, r: $result, d: $details")
-        if (details.isEmpty()) return@ProductDetailsResponseListener
-        details.sortWith { o1, o2 ->
+      ProductDetailsResponseListener { billingResult, result ->
+        Timber.v("onProductDetailsResponse, r: $billingResult, d: $result")
+        val list = result.productDetailsList
+        if (list.isEmpty()) return@ProductDetailsResponseListener
+        val sorted = list.sortedWith { o1, o2 ->
           o1.oneTimePurchaseOfferDetails!!.priceAmountMicros.compareTo(
             o2.oneTimePurchaseOfferDetails!!.priceAmountMicros
           )
         }
         productDetails.clear()
-        productDetails.addAll(details)
+        productDetails.addAll(sorted)
       }
     }
 

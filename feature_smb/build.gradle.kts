@@ -1,10 +1,10 @@
 plugins {
   alias(libs.plugins.android.dynamic.feature)
-  alias(libs.plugins.kotlin)
 }
+
 android {
   namespace = "remix.myplayer.smb"
-  compileSdk = 35
+  compileSdk = 36
 
   defaultConfig {
     minSdk = 21
@@ -33,10 +33,6 @@ android {
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
-  }
-
-  kotlinOptions {
-    jvmTarget = "17"
   }
 }
 

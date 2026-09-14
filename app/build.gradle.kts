@@ -1,10 +1,8 @@
-import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.application)
-    alias(libs.plugins.kotlin)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
@@ -30,26 +28,26 @@ fun readProperties(file: File): Properties {
 val properties = readProperties(rootProject.file("local.properties"))
 
 kotlin {
-    jvmToolchain(17)
+    compilerOptions {
+        freeCompilerArgs.addAll(listOf("-module-name", "remix.myplayer"))
+    }
 }
 
 android {
     namespace = "remix.myplayer"
 
-    compileSdk = 35
-    buildToolsVersion = "35.0.0"
-    ndkVersion = "25.2.9519653"
+    compileSdk = 36
+    ndkVersion = "28.2.13676358"
 
     defaultConfig {
         applicationId = "remix.myplayer.tag"
         minSdk = 21
-        targetSdk = 35
+        targetSdk = 36
 
-        versionCode = 21200
-        versionName = "2.1.2.0"
+        versionCode = 21201
+        versionName = "2.1.2.1"
 
         vectorDrawables.useSupportLibrary = true
-        multiDexEnabled = true
 
         buildConfigField(
             "String",
@@ -75,8 +73,6 @@ android {
                 "x86_64"
             )
         }
-
-        setProperty("archivesBaseName", "TagPlayer-v${versionName}")
     }
 
     androidResources {
@@ -97,10 +93,6 @@ android {
             storePassword = "123456"
             keyAlias = "Debug"
             keyPassword = "123456"
-
-            enableV1Signing = true
-            enableV2Signing = true
-            enableV3Signing = true
         }
 
         create("releaseConfig") {
@@ -158,6 +150,7 @@ android {
     externalNativeBuild {
         cmake {
             path("CMakeLists.txt")
+            version = "4.1.2"
         }
     }
 
@@ -188,11 +181,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf("-module-name", "remix.myplayer")
-    }
-
     lint {
         abortOnError = false
         checkReleaseBuilds = false
@@ -216,21 +204,24 @@ android {
     room {
         schemaDirectory("$projectDir/schemas")
     }
+}
 
-    applicationVariants.all {
-        val variant = this
-        variant.outputs.all {
-            val output = this
-            val flavor = variant.productFlavors.firstOrNull()?.name
-            if (variant.buildType.name == "release" && flavor != null) {
+androidComponents {
+    onVariants { variant ->
+        if (variant.buildType == "release") {
+            val flavor = variant.productFlavors
+                .firstOrNull { it.first == "distribution" }?.second
+            if (flavor == "normal" || flavor == "foss") {
                 val sortPrefix = when (flavor) {
                     "normal" -> "1"
                     "foss" -> "2"
                     else -> ""
                 }
                 if (sortPrefix.isNotEmpty()) {
-                    (output as BaseVariantOutputImpl).outputFileName =
-                        "${sortPrefix}-TagPlayer-v${variant.versionName}-${flavor}-release.apk"
+                    val versionName = android.defaultConfig.versionName ?: ""
+                    variant.outputs.forEach { output ->
+                        output.outputFileName.set("${sortPrefix}-TagPlayer-v${versionName}-${flavor}-release.apk")
+                    }
                 }
             }
         }
@@ -242,6 +233,7 @@ baselineProfile {
 
     warnings {
         disabledVariants = false
+        maxAgpVersion = false
     }
 //  variants {
 //      maybeCreate("normalRelease").apply {
@@ -258,7 +250,6 @@ dependencies {
     implementation(libs.media)
     implementation(libs.androidx.media3.exoplayer)
     implementation(files("libs/lib-decoder-ffmpeg-release.aar"))
-    implementation(libs.multidex)
     implementation(libs.palette.ktx)
 
     implementation(libs.material)
@@ -300,6 +291,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.core)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -322,6 +314,7 @@ dependencies {
 // 上传mapping文件
 if (properties.getProperty("BUGLY_UPLOAD") == "1") {
     val uploadMapping by tasks.registering(Exec::class) {
+        description = "upload bugly"
         val jarFile = File(properties.getProperty("BUGLY_JAR") ?: "")
         if (!jarFile.exists()) {
             logger.warn("jarFile: ${jarFile.absolutePath} don't exist")
@@ -343,11 +336,11 @@ if (properties.getProperty("BUGLY_UPLOAD") == "1") {
             "-appkey",
             appKey,
             "-bundleid",
-            android.defaultConfig.applicationId,
+            android.defaultConfig.applicationId ?: "",
             "-version",
-            android.defaultConfig.versionName,
+            android.defaultConfig.versionName ?: "",
             "-buildNo",
-            android.defaultConfig.versionCode.toString(),
+            (android.defaultConfig.versionCode ?: 0).toString(),
             "-platform",
             "Android",
             "-inputMapping",

@@ -2,8 +2,6 @@ package remix.myplayer.ui.screen.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -31,10 +29,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -46,14 +41,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
@@ -118,27 +110,6 @@ fun HomeScreen() {
         .fillMaxSize()
         .nestedScroll(scrollBehavior.nestedScrollConnection),
       containerColor = LocalTheme.current.libraryBackground,
-      topBar = {
-        AnimatedContent(
-          targetState = showMultiSelect,
-          transitionSpec = {
-            if (targetState) {
-              slideInVertically() togetherWith slideOutVertically { height -> height / 2 }
-            } else {
-              slideInVertically { height -> height } togetherWith slideOutVertically()
-            }
-          }
-        ) { isMultiSelect ->
-          if (!isMultiSelect) {
-            HomeAppBar(scrollBehavior, drawerState)
-          } else {
-            MultiSelectBar(
-              state = multiSelectState,
-              scrollBehavior = scrollBehavior,
-            )
-          }
-        }
-      },
       floatingActionButton = {
         val selectLibrary by remember(libraries) {
           derivedStateOf {
@@ -197,13 +168,41 @@ fun HomeScreen() {
 
       })
     { contentPadding ->
-      HomeContent(contentPadding, pagerState, libraries)
+      Column(
+        Modifier
+          .fillMaxSize()
+          .background(LocalTheme.current.libraryBackground)
+      ) {
+        // TopAppBar 直接参与 Column 布局：收起时高度变化即时传播，
+        // 避免 Scaffold topBar slot（SubcomposeLayout）测量滞后在 bar 底部露出缝隙
+        AnimatedContent(
+          targetState = showMultiSelect,
+          transitionSpec = {
+            if (targetState) {
+              slideInVertically() togetherWith slideOutVertically { height -> height / 2 }
+            } else {
+              slideInVertically { height -> height } togetherWith slideOutVertically()
+            }
+          }
+        ) { isMultiSelect ->
+          if (!isMultiSelect) {
+            HomeAppBar(scrollBehavior, drawerState)
+          } else {
+            MultiSelectBar(
+              state = multiSelectState,
+              scrollBehavior = scrollBehavior,
+            )
+          }
+        }
+        HomeContent(Modifier.weight(1f), contentPadding, pagerState, libraries)
+      }
     }
   }
 }
 
 @Composable
 private fun HomeContent(
+  modifier: Modifier = Modifier,
   contentPadding: PaddingValues,
   pagerState: PagerState,
   libraries: List<Library>,
@@ -211,7 +210,18 @@ private fun HomeContent(
   val scope = rememberCoroutineScope()
   val scrollToCurrentEvent = remember { MutableSharedFlow<Unit>() }
 
-  Column(modifier = Modifier.padding(contentPadding)) {
+  val layoutDirection = LocalLayoutDirection.current
+
+  // 顶部由 Column 里的 TopAppBar 占位；这里只应用底部（导航栏）与左右 insets
+  Column(
+    modifier = modifier
+      .padding(
+        start = contentPadding.calculateLeftPadding(layoutDirection),
+        end = contentPadding.calculateRightPadding(layoutDirection),
+        bottom = contentPadding.calculateBottomPadding(),
+      )
+      .background(LocalTheme.current.libraryBackground)
+  ) {
     // 顶部 Tab：数量少时平分整行宽度铺满，数量多放不下时才横向滚动
     BoxWithConstraints(
       modifier = Modifier

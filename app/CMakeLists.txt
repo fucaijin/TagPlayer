@@ -3,7 +3,7 @@
 
 # Sets the minimum version of CMake required to build the native library.
 
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.22.1)
 project(APlayerNative LANGUAGES C CXX)
 
 # Creates and names a library, sets it as either STATIC
@@ -45,5 +45,14 @@ target_link_libraries( # Specifies the target library.
                        # Links the target library to the log library
                        # included in the NDK.
                        ${log-lib}
-                       "-Wl,--build-id=none"
-                       "-Wl,-z,max-page-size=16384" )
+                       "-Wl,--build-id=none")
+
+# NDK clang can embed host-specific compiler-build metadata in the ELF
+# .comment section (for example, different BOLT/MLGO settings between
+# macOS and Linux host toolchains). The section is not used at runtime,
+# so remove it to keep libblur.so byte-for-byte reproducible.
+add_custom_command(TARGET blur POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY}
+        --remove-section .comment
+        $<TARGET_FILE:blur>
+        VERBATIM)

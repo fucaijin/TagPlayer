@@ -1,11 +1,11 @@
 [versions]
-agp = "8.9.0"
+agp = "9.2.1"
 imageCropper = "4.6.0"
-hiltAndroid = "2.56.2"
-kotlin = "2.1.21"
+hiltAndroid = "2.60.1"
+kotlin = "2.2.20"
 kotlinxSerializationJson = "1.8.1"
-ksp = "2.1.21-2.0.2"
-hilt = "2.56.2"
+ksp = "2.2.20-2.0.2"
+hilt = "2.60.1"
 media3 = "1.8.0"
 nav = "2.9.2"
 glide = "4.16.0"
@@ -16,15 +16,15 @@ room = "2.7.2"
 xxpermissions = "21.2"
 workRuntimeKtx = "2.10.4"
 activityCompose = "1.10.1"
-composeBom = "2025.09.00"
+composeBom = "2025.11.00"
 lifecycleRuntimeKtx = "2.9.2"
 lifecycleViewmodelCompose = "2.9.2"
-kotlinxCoroutines = "1.8.0"
+kotlinxCoroutines = "1.10.2"
 appcompat = "1.6.1"
 media = "1.7.0"
 multidex = "2.0.1"
 paletteKtx = "1.0.0"
-billingclient = "7.1.0"
+billingclient = "8.0.0"
 material = "1.11.0"
 bugly = "3.3.9"
 leakcanary = "2.14"
@@ -47,7 +47,6 @@ annotation = "1.7.0"
 [plugins]
 application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-kotlin = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
@@ -113,6 +112,7 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version = "1.7.8" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-nav = { module = "androidx.navigation:navigation-compose", version.ref = "nav" }
 androidx-hilt-navi-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }

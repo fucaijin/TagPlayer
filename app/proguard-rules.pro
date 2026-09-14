@@ -89,6 +89,9 @@
 -dontwarn org.slf4j.**
 -dontwarn net.engio.mbassy.**
 -dontwarn javax.el.**
+-keepclassmembers,allowshrinking,allowobfuscation class com.hierynomus.msdfsc.ReferralCache$ReferralCacheNode {
+    static final java.util.concurrent.atomic.AtomicReferenceFieldUpdater ENTRY_UPDATER;
+}
 
 -keepclassmembers class * {
     @net.engio.mbassy.listener.Handler <methods>;

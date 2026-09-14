@@ -1,10 +1,9 @@
 package remix.myplayer
 
+import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
-import androidx.multidex.MultiDex
-import androidx.multidex.MultiDexApplication
 import com.hjq.permissions.XXPermissions
 import dagger.hilt.android.HiltAndroidApp
 import remix.myplayer.helper.AppMigration
@@ -24,7 +23,7 @@ import javax.inject.Inject
  * Created by Remix on 16-3-16.
  */
 @HiltAndroidApp
-class App : MultiDexApplication() {
+class App : Application() {
 
   @Inject
   lateinit var appMigration: AppMigration
@@ -35,7 +34,6 @@ class App : MultiDexApplication() {
   override fun attachBaseContext(base: Context) {
     saveSystemCurrentLanguage()
     super.attachBaseContext(setLocal(base))
-    MultiDex.install(this)
   }
 
   override fun onCreate() {
