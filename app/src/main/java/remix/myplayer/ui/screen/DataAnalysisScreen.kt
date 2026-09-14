@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -222,7 +223,7 @@ fun DataAnalysisReport(modifier: Modifier = Modifier) {
       } else {
         val list = if (state.tagCountDesc) state.tagCounts else state.tagCounts.reversed()
         list.take(MAX_LIST_ROWS).forEachIndexed { index, item ->
-          NameCountRow(index + 1, item.name, stringResource(R.string.stats_times, item.count))
+          NameCountRow(index + 1, item.name, stringResource(R.string.song_count_1, item.count))
         }
       }
     }
@@ -325,9 +326,10 @@ private fun StatsRangeSelector(
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-      DateInput(value = fromText, onValueChange = onFromChange, modifier = Modifier.width(100.dp))
+      DateInput(value = fromText, onValueChange = onFromChange, modifier = Modifier.width(84.dp))
       TextSecondary("~", fontSize = 13.sp)
-      DateInput(value = toText, onValueChange = onToChange, modifier = Modifier.width(100.dp))
+      DateInput(value = toText, onValueChange = onToChange, modifier = Modifier.width(84.dp))
+      PresetDropdown(preset, onSelectPreset)
       Surface(
         shape = RoundedCornerShape(50),
         color = theme.secondary,
@@ -340,7 +342,6 @@ private fun StatsRangeSelector(
           modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         )
       }
-      PresetDropdown(preset, onSelectPreset)
     }
   }
 }
@@ -353,7 +354,7 @@ private fun DateInput(value: String, onValueChange: (String) -> Unit, modifier: 
     value = value,
     onValueChange = { input -> onValueChange(input.filter { it.isDigit() }.take(8)) },
     singleLine = true,
-    textStyle = TextStyle(color = theme.textPrimary, fontSize = 14.sp),
+    textStyle = TextStyle(color = theme.textPrimary, fontSize = 14.sp, textAlign = TextAlign.Center),
     keyboardOptions = KeyboardOptions(
       keyboardType = KeyboardType.Number,
       imeAction = ImeAction.Done
@@ -366,7 +367,7 @@ private fun DateInput(value: String, onValueChange: (String) -> Unit, modifier: 
           .fillMaxWidth()
           .background(theme.dialogBackground, RoundedCornerShape(6.dp))
           .padding(horizontal = 8.dp, vertical = 8.dp),
-        contentAlignment = Alignment.CenterStart
+        contentAlignment = Alignment.Center
       ) {
         if (value.isEmpty()) {
           TextSecondary(stringResource(R.string.stats_range_date_hint), fontSize = 13.sp)
