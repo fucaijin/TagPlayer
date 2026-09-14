@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import remix.myplayer.data.prefs.PrefKeys
 import remix.myplayer.util.ext.zipFrom
 import remix.myplayer.util.ext.zipOutputStream
 import java.io.File
@@ -21,14 +22,23 @@ object LogFileWriter {
   private val logChannel = Channel<LogEntry>(capacity = Channel.UNLIMITED)
   private var logDir: File? = null
 
+  /** 是否写入日志文件，由设置-其他-"记录日志"开关控制 */
+  @Volatile
+  private var enabled = DEFAULT_ENABLED
+
   private val logTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US)
   private val fileNameFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
   private val logFileNameRegex = Regex("\\d{4}-\\d{2}-\\d{2}\\.log")
 
   private const val MAX_KEEP_DAYS = 30
   private const val LOG_FOLDER_NAME = "logs"
+  private const val DEFAULT_ENABLED = true
 
   fun init(context: Context) {
+    // 开关状态直接从偏好读取，保证进程启动时与设置页一致
+    enabled = context.getSharedPreferences(PrefKeys.Setting.NAME, Context.MODE_PRIVATE)
+      .getBoolean(PrefKeys.Setting.LOG_ENABLED, DEFAULT_ENABLED)
+
     logDir = getLogDir(context)
 
     if (logDir?.exists() == false) {
@@ -43,6 +53,12 @@ object LogFileWriter {
     }
   }
 
+  fun isEnabled(): Boolean = enabled
+
+  fun setEnabled(value: Boolean) {
+    enabled = value
+  }
+
   fun getLogDir(context: Context): File {
     val appDataDir = context.externalCacheDir?.parentFile
     return if (appDataDir != null) {
@@ -53,6 +69,8 @@ object LogFileWriter {
   }
 
   fun log(priority: Int, tag: String?, message: String, t: Throwable? = null) {
+    if (!enabled) return
+
     logChannel.trySend(
       LogEntry(
         timestamp = System.currentTimeMillis(),

@@ -167,6 +167,9 @@ object PrefKeys {
     /** 数据分析：一天的分界点小时（默认 5，即凌晨 5 点前算前一天） */
     const val STATS_DAY_START_HOUR = "stats_day_start_hour"
 
+    /** 是否记录运行日志到文件（设置-其他-"记录日志"） */
+    const val LOG_ENABLED = "log_enabled"
+
     /** 歌曲列表是否显示序号 */
     const val LIST_SHOW_NUMBER = "list_show_number"
 

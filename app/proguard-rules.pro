@@ -113,6 +113,21 @@
 # R8 full mode 下缺失类会报 "Missing classes detected" 错误，用 -dontwarn 抑制（该代码路径运行时不会被调用）
 -dontwarn javax.swing.**
 
+# jaudiotagger 2.0.1 大量依赖反射，不能被 R8 混淆/裁剪：
+# 1) 按类名创建帧体：Class.forName("org.jaudiotagger.tag.id3.framebody.FrameBody" + frameId)
+#    —— 类名被混淆后会抛 ClassNotFoundException，帧被当作 FrameBodyUnsupported 处理（ID3v2.2 等旧标签读不出来）
+# 2) ID3Tags.copyObject() 用 getClass().getConstructor(getClass()) 查找「同类型公开拷贝构造函数」
+#    —— 这些拷贝构造函数没有静态调用者，会被 R8 当无用代码裁掉，读取 ID3v2 标签时抛
+#    IllegalArgumentException: NoSuchMethodException: Error finding constructor to create copy:xxx
+# 两者都会导致读/写标签失败，因此整体保留该库（类名 + 成员）。
+-keep class org.jaudiotagger.** { *; }
+
+# 整体保留后，库内用不到的桌面端代码（封面 AWT/ImageIO 处理、日志格式化）也会被保留，
+# 它们引用了 Android 上不存在的类，用 -dontwarn 抑制（运行时不会走到这些分支）
+-dontwarn java.awt.**
+-dontwarn javax.imageio.**
+-dontwarn sun.security.**
+
 # jump3r（纯 Java LAME）里的 LameEncoder/Main 等类引用 Android 上不存在的 javax.sound.sampled.*
 # 本项目只用其 de.sciss.jump3r.mp3.Lame 做编码（自写薄封装），不会走到这些类
 -dontwarn javax.sound.**

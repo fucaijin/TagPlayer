@@ -177,6 +177,8 @@
   <string name="export_log_tip">将日志文件打包导出到指定位置</string>
   <string name="export_log_success">日志导出成功</string>
   <string name="export_log_error">日志导出失败</string>
+  <string name="log_enabled">记录日志</string>
+  <string name="log_enabled_tip">开启后把运行日志写入文件，便于排查问题；关闭则不再记录</string>
   <string name="clear_log">清空日志</string>
   <string name="clear_log_tip">删除所有日志文件</string>
   <string name="confirm_clear_log">确定清空所有日志文件？</string>

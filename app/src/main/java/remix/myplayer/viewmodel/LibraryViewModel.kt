@@ -38,6 +38,7 @@ import remix.myplayer.helper.ConvertFormat
 import remix.myplayer.helper.AudioConverter
 import remix.myplayer.helper.SongTagFile
 import remix.myplayer.misc.MediaScanner
+import remix.myplayer.misc.log.LogFileWriter
 import remix.myplayer.repo.AlbumRepository
 import remix.myplayer.repo.ArtistRepository
 import remix.myplayer.repo.FolderRepository
@@ -319,6 +320,26 @@ class LibraryViewModel @Inject constructor(
         it.copy(song = song)
       }
     )
+    logTagDiagnostics(song)
+  }
+
+  /**
+   * 打开标签弹窗时记录该歌曲的标签诊断信息：文件里的标签 vs 缓存里的标签、文件时间戳。
+   * 排查"另一个 App 设置了标签，本 App 没刷新"时，这行日志能直接看出差异。
+   */
+  private fun logTagDiagnostics(song: Song) {
+    if (!LogFileWriter.isEnabled() || !song.valid()) return
+    viewModelScope.launch {
+      val cached = songTags.value[song.data]
+      val file = File(song.data)
+      val fileTags = withContext(Dispatchers.IO) {
+        runCatching { SongTagFile.readTags(file) }.getOrNull()
+      }
+      Timber.i(
+        "tag dialog: %s | fileTags=%s cachedTags=%s | fileTime=%d fileSize=%d",
+        song.data, fileTags, cached, file.lastModified(), file.length()
+      )
+    }
   }
 
   fun dismissSongTagManageDialog() {
@@ -763,6 +784,7 @@ class LibraryViewModel @Inject constructor(
   }
 
   override fun onMediaStoreChanged() {
+    Timber.v("onMediaStoreChanged, hasPermission: $hasPermission")
     if (hasPermission) {
       fetchMedia()
     }

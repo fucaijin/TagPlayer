@@ -57,6 +57,7 @@ import remix.myplayer.ui.screen.setting.logic.other.ClearCacheLogic
 import remix.myplayer.ui.screen.setting.logic.other.ClearLogLogic
 import remix.myplayer.ui.screen.setting.logic.other.ClearSearchHistoryLogic
 import remix.myplayer.ui.screen.setting.logic.other.ExportLogLogic
+import remix.myplayer.ui.screen.setting.logic.other.LogEnabledLogic
 import remix.myplayer.ui.screen.setting.logic.play.AutoPlayLogic
 import remix.myplayer.ui.screen.setting.logic.play.DecoderModeLogic
 import remix.myplayer.ui.screen.setting.logic.play.IgnoreAudioFocusLogic
@@ -350,6 +351,8 @@ private fun OtherPreferenceItems() {
   ClearCacheLogic()
 
   ClearSearchHistoryLogic()
+
+  LogEnabledLogic()
 
   ExportLogLogic()
 

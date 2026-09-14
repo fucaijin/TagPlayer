@@ -140,6 +140,9 @@ class SettingPrefs @Inject constructor(
   /** 数据分析：一天的分界点小时（默认 5 点，凌晨 5 点前算前一天） */
   var statsDayStartHour by PrefsDelegate(sp, PrefKeys.Setting.STATS_DAY_START_HOUR, 5)
 
+  /** 是否记录运行日志到文件，默认开启 */
+  var logEnabled by PrefsDelegate(sp, PrefKeys.Setting.LOG_ENABLED, true)
+
   var ignoreAudioFocus by PrefsDelegate(sp, PrefKeys.Setting.AUDIO_FOCUS, false)
   var decoderMode by PrefsDelegate(
     sp,

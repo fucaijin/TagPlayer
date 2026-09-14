@@ -79,22 +79,33 @@ class SongTagRepository @Inject constructor(
     val localSongs = songs.filter { it.isLocal() && it.valid() }
     if (localSongs.isEmpty()) return
 
-    val existing = cacheDao.getAll().associate { it.path to it.updateTime }
+    val existing = cacheDao.getAll().associateBy { it.path }
     // 只扫描缓存缺失或文件被修改过的歌曲。
     // MediaStore 的 date_modified 在文件被其他应用直接改写后可能不刷新（如 A/B 两个应用互写标签），
     // 因此以磁盘文件的 lastModified 为准，确保能感知标签变化；拿不到文件时间再回退 MediaStore。
-    val toScan = localSongs.filter { song ->
-      val cachedTime = existing[song.data]
-      if (cachedTime == null) {
-        true
-      } else {
-        val fileTime = runCatching { File(song.data).lastModified() }.getOrDefault(0L)
-        if (fileTime > 0) {
-          cachedTime < fileTime
-        } else {
-          song.dateModified > 0 && cachedTime < song.dateModified * 1000L
-        }
+    val decisions = localSongs.map { song ->
+      val cached = existing[song.data]
+      val fileTime = runCatching { File(song.data).lastModified() }.getOrDefault(0L)
+      val mediaTime = song.dateModified * 1000L
+      val needScan = when {
+        cached == null -> true
+        fileTime > 0 -> cached.updateTime < fileTime
+        else -> mediaTime > 0 && cached.updateTime < mediaTime
       }
+      ScanDecision(song, cached, fileTime, mediaTime, needScan)
+    }
+    val toScan = decisions.filter { it.needScan }.map { it.song }
+
+    Timber.i(
+      "tag refreshIndex: songs=%d cached=%d toScan=%d",
+      localSongs.size, existing.size, toScan.size
+    )
+    // 命中缓存而未重扫的歌曲抽样记录：如果文件被其它 App 改过却没重扫，这里能看出时间戳判断是否失效
+    decisions.filter { !it.needScan }.take(SKIP_LOG_SAMPLE).forEach { d ->
+      Timber.v(
+        "tag skip scan: %s cachedTags=%s cachedTime=%d fileTime=%d mediaTime=%d",
+        d.song.data, d.cached?.tags, d.cached?.updateTime ?: 0L, d.fileTime, d.mediaTime
+      )
     }
     if (toScan.isEmpty()) return
 
@@ -103,6 +114,20 @@ class SongTagRepository @Inject constructor(
         toScan.chunked((toScan.size / PARALLELISM).coerceAtLeast(1)).map { partition ->
           async(Dispatchers.IO) { partition.mapNotNull(::scanSong) }
         }.flatMap { it.await() }
+      }
+    }
+
+    // 标签发生变化的歌曲逐条记录（缓存值 -> 文件值），用于排查标签未刷新问题
+    scanned.forEach { cache ->
+      val old = existing[cache.path]
+      if (old == null || old.tags != cache.tags) {
+        Timber.i(
+          "tag index changed: %s | cached=%s -> file=%s | fileTime=%d",
+          cache.path,
+          old?.tags ?: "<none>",
+          cache.tags,
+          runCatching { File(cache.path).lastModified() }.getOrDefault(0L)
+        )
       }
     }
 
@@ -119,11 +144,25 @@ class SongTagRepository @Inject constructor(
   /** 将标签写入音频文件并更新缓存，返回写入结果 */
   suspend fun saveTags(song: Song, tags: Set<String>): Result<Unit> {
     if (!song.isLocal() || !song.valid()) {
+      Timber.w("tag write skipped, invalid local song: %s", song.data)
       return Result.failure(IllegalStateException("Not a valid local song: ${song.data}"))
     }
     return withContext(Dispatchers.IO) {
       runCatching {
-        val ok = SongTagFile.writeTags(File(song.data), App.context.cacheDir, tags)
+        val file = File(song.data)
+        val cachedBefore = cacheDao.getByPath(song.data)
+        val timeBefore = file.lastModified()
+        val sizeBefore = file.length()
+        Timber.i(
+          "tag write start: %s | cached=%s -> new=%s | mtime=%d size=%d",
+          song.data,
+          cachedBefore?.tags ?: "<none>",
+          tags.joinToString(SongTagFile.SEPARATOR),
+          timeBefore,
+          sizeBefore
+        )
+
+        val ok = SongTagFile.writeTags(file, App.context.cacheDir, tags)
         check(ok) { "Failed to write tags to file: ${song.data}" }
         cacheDao.upsert(
           SongTagCache(
@@ -132,9 +171,21 @@ class SongTagRepository @Inject constructor(
             updateTime = System.currentTimeMillis()
           )
         )
+        // 写入前后的 mtime/size 用于确认文件确实被改动（其它 App 依赖它判断是否需要重扫标签）
+        Timber.i(
+          "tag write done: %s | mtime %d -> %d | size %d -> %d",
+          song.data,
+          timeBefore,
+          file.lastModified(),
+          sizeBefore,
+          file.length()
+        )
+
         // 写入完成后通知 MediaStore 重新扫描该文件。
         // 否则 MediaProvider 可能在写入途中感知到文件变化并错误地把歌曲从媒体库移除。
         rescanFile(song.data)
+      }.onFailure {
+        Timber.e(it, "tag write failed: %s", song.data)
       }
     }
   }
@@ -175,5 +226,17 @@ class SongTagRepository @Inject constructor(
 
     /** 单批数据库写入条数 */
     private const val INSERT_BATCH = 500
+
+    /** 未重扫歌曲的日志抽样条数 */
+    private const val SKIP_LOG_SAMPLE = 5
   }
 }
+
+/** 单首歌是否需要重扫标签的判定结果（仅用于日志排查） */
+private data class ScanDecision(
+  val song: Song,
+  val cached: SongTagCache?,
+  val fileTime: Long,
+  val mediaTime: Long,
+  val needScan: Boolean
+)

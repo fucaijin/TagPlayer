@@ -1,6 +1,7 @@
 package remix.myplayer.helper
 
 import com.kyant.taglib.TagLib
+import timber.log.Timber
 import java.io.File
 
 /**
@@ -37,13 +38,28 @@ object SongTagFile {
    */
   fun writeTags(file: File, cacheDir: File?, tags: Set<String>): Boolean {
     if (!TagLib.isTagWritable(file.absolutePath)) {
+      Timber.w("writeTags unsupported format: %s", file.absolutePath)
       throw UnsupportedFormatException(file.name)
     }
-    val metadata = AudioTagFile.readMetadata(file, readPictures = false) ?: return false
+    val metadata = AudioTagFile.readMetadata(file, readPictures = false)
+    if (metadata == null) {
+      Timber.w("writeTags read metadata failed: %s", file.absolutePath)
+      return false
+    }
     val propertyMap = metadata.propertyMap
     // 始终写入 AUDIO_TAGS（即使为空集也写入空值以清除文件中的旧标签）
     propertyMap[TAGS_KEY] = arrayOf(tags.joinToString(SEPARATOR))
-    return AudioTagFile.savePropertyMap(file, propertyMap, cacheDir)
+    val saved = AudioTagFile.savePropertyMap(file, propertyMap, cacheDir)
+    // mtime/size 是其它 App 判断是否需要重新读取标签的依据，写入后必须发生变化
+    Timber.i(
+      "writeTags %s: %s -> [%s] | mtime=%d size=%d",
+      if (saved) "ok" else "failed",
+      file.name,
+      tags.joinToString(SEPARATOR),
+      file.lastModified(),
+      file.length()
+    )
+    return saved
   }
 
   /** 解析分隔符拼接的标签字符串 */

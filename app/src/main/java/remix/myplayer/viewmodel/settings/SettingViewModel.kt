@@ -30,6 +30,7 @@ import remix.myplayer.lyric.LyricManager
 import remix.myplayer.lyric.LyricManager.Companion.ACTION_LYRIC
 import remix.myplayer.lyric.LyricManager.Companion.CHANGE_LYRIC
 import remix.myplayer.lyric.LyricManager.Companion.EXTRA_LYRIC
+import remix.myplayer.misc.log.LogFileWriter
 import remix.myplayer.repo.SongRepository
 import remix.myplayer.repo.usecase.DeleteSongUseCase
 import remix.myplayer.ui.activity.base.BaseActivity
@@ -157,6 +158,9 @@ class SettingViewModel @Inject constructor(
     ),
     analysis = AnalysisSettings(
       dayStartHour = settingPrefs.statsDayStartHour
+    ),
+    other = OtherSettings(
+      logEnabled = settingPrefs.logEnabled
     )
   )
 
@@ -496,6 +500,14 @@ class SettingViewModel @Inject constructor(
   fun setListShowArtistAlbum(enabled: Boolean) {
     settingPrefs.listShowArtistAlbum = enabled
     _settingsState.update { it.copy(list = it.list.copy(showArtistAlbum = enabled)) }
+  }
+
+  // -------- Other(其他) 分组 ----------
+  /** 记录日志开关：关闭后不再写入日志文件 */
+  fun setLogEnabled(enabled: Boolean) {
+    settingPrefs.logEnabled = enabled
+    LogFileWriter.setEnabled(enabled)
+    _settingsState.update { it.copy(other = it.other.copy(logEnabled = enabled)) }
   }
 
   private val _addSongToPlayListState =

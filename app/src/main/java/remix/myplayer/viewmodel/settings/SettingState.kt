@@ -116,6 +116,12 @@ data class AnalysisSettings(
 )
 
 @Stable
+data class OtherSettings(
+  /** 是否记录运行日志到文件 */
+  val logEnabled: Boolean,
+)
+
+@Stable
 data class SettingsState(
   val common: CommonSettings,
   val play: PlaySettings,
@@ -127,4 +133,5 @@ data class SettingsState(
   val notification: NotificationSettings,
   val list: ListSettings,
   val analysis: AnalysisSettings,
+  val other: OtherSettings,
 )

@@ -4,6 +4,8 @@ import android.content.ContentProvider
 import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
+import android.os.Build
+import remix.myplayer.BuildConfig
 import timber.log.Timber
 
 class LogTrojanProvider : ContentProvider() {
@@ -22,9 +24,18 @@ class LogTrojanProvider : ContentProvider() {
 
 
   override fun onCreate(): Boolean {
-    context?.let { LogFileWriter.init(it) }
+    val ctx = context
+    ctx?.let { LogFileWriter.init(it) }
     Timber.plant(LogTree())
-    Timber.v("onCreate")
+    // 记录进程信息：同一台设备上装了多个 TagPlayer 时，据此区分日志来自哪个包
+    Timber.i(
+      "App start: package=%s version=%s(%d) sdk=%d logEnabled=%s",
+      ctx?.packageName,
+      BuildConfig.VERSION_NAME,
+      BuildConfig.VERSION_CODE,
+      Build.VERSION.SDK_INT,
+      LogFileWriter.isEnabled()
+    )
     return true
   }
 

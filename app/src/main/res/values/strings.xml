@@ -178,6 +178,8 @@
   <string name="export_log_tip">Package and export log files to a location</string>
   <string name="export_log_success">Logs exported</string>
   <string name="export_log_error">Failed to export logs</string>
+  <string name="log_enabled">Record logs</string>
+  <string name="log_enabled_tip">Write runtime logs to a file for troubleshooting; turn off to stop recording</string>
   <string name="clear_log">Clear logs</string>
   <string name="clear_log_tip">Delete all log files</string>
   <string name="confirm_clear_log">Clear all log files?</string>
