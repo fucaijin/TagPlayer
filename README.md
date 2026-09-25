@@ -101,4 +101,4 @@ TagPlayer can switch to **any language**, not just the built-in Chinese / Englis
 ## Finally
 - Pull request is welcome
 - I'll be appreciate if you star
-- If you have any question,you can send email to rRemix.me@gmail.com,open an issue or join [tg group](https://t.me/joinchat/PqrPPBbM4poRPDH7qnXxLw)
+- About this fork project, if you have any question, you can send email to fucaijin999@gmail.com or open an issue.
