@@ -4,23 +4,15 @@
 
 # [中文](/README_CN.md)
 
-# APlayer - Android Music Player
+# TagPlayer - Android Music Player
 
 ## Intro
-APlayer is a beautiful, powerful local music player rebuilt with Jetpack Compose, featuring **super powerful tag-based management with corresponding filtering** and **rich listening analytics**. You can use tags to classify, filter, and exclude songs, keeping your library perfectly organized; on top of standard playback it lets you organize your library with custom tags, understand your habits through rich statistics, and personalize the UI — sort rules, filename display, heatmaps and analysis modules — to fit the way you listen.
-
-## Download
-[<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png"
-alt="Get it on Google Play"
-height="80">](https://play.google.com/store/apps/details?id=remix.myplayer)
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png"
-alt="Get it at IzzyOnDroid"
-height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
+TagPlayer is a local music player modified from the excellent open-source music player APlayer, featuring **powerful tag-based management with corresponding filtering** and **rich listening analytics**. You can use tags to classify, filter, and exclude songs, keeping your library perfectly organized; on top of standard playback it lets you organize your library with custom tags, understand your habits through rich statistics, and personalize the UI — sort rules, filename display, heatmaps and analysis modules — to fit the way you listen.
 
 ## New in this fork: Tag Management
 This fork adds **tag-based music management** on top of the original project: tag your songs (e.g. sleep aid / light music / piano / nostalgic) and filter them with one tap. It fits scenarios like bedtime or work — for example, filter out light music with the "sleep aid" or "piano" tags before going to sleep, which is not convenient with plain lists.
 
-### Screenshots
+### TagPlayer Screenshots
 |   |   |   |   |
 |:-:|:-:|:-:|:-:|
 | <img src="screenshoots/12-tag-filter.jpg" width="200" alt="Tag Display in Song List" /> | <img src="screenshoots/13-tag-filter-expanded.png" width="200" alt="Tag Filter" /> | <img src="screenshoots/14-tag-manage.png" width="200" alt="Tag Manage" /> | <img src="screenshoots/15-tag-song.png" width="200" alt="Single Song Tag" /> |
@@ -54,7 +46,7 @@ This fork adds **tag-based music management** on top of the original project: ta
 - Tag export/import via the system file picker (JSON backup keyed by file path)
 - Batch rename songs with a template ({title}{artist}{album}{track}{year}); the default rename template and default tags can be configured in Settings, and default tags are pre-selected when a song has none
 
-## Screenshot
+## Aplayer Screenshot
 |   |   |   |   |
 |:-:|:-:|:-:|:-:|
 | <img src="screenshoots/1-home.png" width="200" alt="Home Screen" /> | <img src="screenshoots/2-albums.png" width="200" alt="Albums Screen" /> | <img src="screenshoots/3-playing-cover.png" width="200" alt="Playing Cover Screen" /> | <img src="screenshoots/4-playing-lyric.png" width="200" alt="Playing Lyric Screen" /> |
@@ -97,6 +89,7 @@ TagPlayer can switch to **any language**, not just the built-in Chinese / Englis
 - The exported template uses English as the source; its keys map 1:1 to the app's strings. Imported translations only override matched strings and fall back to built-in resources for the rest.
 
 ## Thanks
+- Original project: [rRemix/APlayer](https://github.com/rRemix/APlayer)
 - [XXPermissions](https://github.com/getActivity/XXPermissions)
 - [Retrofit](https://github.com/square/retrofit)
 - [Timber](https://github.com/JakeWharton/timber)
@@ -104,7 +97,6 @@ TagPlayer can switch to **any language**, not just the built-in Chinese / Englis
 - [ImageCropper](https://github.com/CanHub/Android-Image-Cropper)
 - [TinyPinyin](https://github.com/promeG/TinyPinyin)
 - [TagLib for Android](https://github.com/rRemix/taglib)
-- Original project: [rRemix/APlayer](https://github.com/rRemix/APlayer)
 
 ## Finally
 - Pull request is welcome

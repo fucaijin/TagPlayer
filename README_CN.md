@@ -3,23 +3,15 @@
 
 # [English](/README.md)
 
-# APlayer - 安卓本地音乐播放器
+# TagPlayer - 安卓本地音乐播放器
 
 ## 简介
-APlayer 是一款基于 Jetpack Compose 重构的简洁、功能强大的本地音乐播放器，拥有**超级强大的标签管理及对应的筛选功能**，以及**丰富的数据分析**。你可以用标签对歌曲进行分类、筛选、排除，让曲库井井有条；除常规播放外，它支持用自定义标签整理曲库、用丰富的统计报表了解听歌习惯，并能按自己的喜好个性化界面——排序规则、文件名显示、热力图与分析模块等。
-
-## 下载
-[<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png"
-alt="Get it on Google Play"
-height="80">](https://play.google.com/store/apps/details?id=remix.myplayer)
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png"
-alt="Get it at IzzyOnDroid"
-height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
+TagPlayer 是一款基于优秀的开源音乐播放器Aplayer进行修改的本地音乐播放器，拥有**强大的标签管理及对应的筛选功能**，以及**丰富的数据分析**。你可以用标签对歌曲进行分类、筛选、排除，让曲库井井有条；除常规播放外，它支持用自定义标签整理曲库、用丰富的统计报表了解听歌习惯，并能按自己的喜好个性化界面——排序规则、文件名显示、热力图与分析模块等。
 
 ## 本分支新增：标签管理
 本分支在原项目基础上新增**标签管理音乐**功能：给歌曲打上"助眠/轻音乐/钢琴/怀旧"等标签，即可按标签一键过滤出想听的音乐。适合睡觉、工作等场景——比如睡前用"助眠/钢琴"过滤出轻音乐，而用列表一个个翻找很不方便。
 
-### 截图
+### TagPlayer 截图
 |   |   |   |   |
 |:-:|:-:|:-:|:-:|
 | <img src="screenshoots/12-tag-filter.jpg" width="200" alt="歌曲列表标签显示" /> | <img src="screenshoots/13-tag-filter-expanded.png" width="200" alt="标签过滤" /> | <img src="screenshoots/14-tag-manage.png" width="200" alt="标签管理" /> | <img src="screenshoots/15-tag-song.png" width="200" alt="单曲标签管理" /> |
@@ -53,7 +45,7 @@ height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
 - 标签支持通过系统文件选择器导出/导入（按文件路径备份为 JSON）
 - 支持按模板（{title}{artist}{album}{track}{year}）批量重命名歌曲；可在设置中配置"默认重命名模板"
 
-## 截图
+## Aplayer截图
 |   |   |   |   |
 |:-:|:-:|:-:|:-:|
 | <img src="screenshoots/1-home.png" width="200" alt="主页" /> | <img src="screenshoots/2-albums.png" width="200" alt="专辑" /> | <img src="screenshoots/3-playing-cover.png" width="200" alt="播放页封面" /> | <img src="screenshoots/4-playing-lyric.png" width="200" alt="播放页歌词" /> |
@@ -98,6 +90,7 @@ height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
 - 导出的模板以英文为源语言，模板中的 key 与 App 内文案一一对应；导入后只覆盖对应文案，缺失项回退到内置资源。
 
 ## 感谢
+- 原项目：[rRemix/APlayer](https://github.com/rRemix/APlayer)
 - [XXPermissions](https://github.com/getActivity/XXPermissions)
 - [Retrofit](https://github.com/square/retrofit)
 - [Timber](https://github.com/JakeWharton/timber)
@@ -105,7 +98,6 @@ height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
 - [ImageCropper](https://github.com/CanHub/Android-Image-Cropper)
 - [TinyPinyin](https://github.com/promeG/TinyPinyin)
 - [TagLib for Android](https://github.com/rRemix/taglib)
-- 原项目：[rRemix/APlayer](https://github.com/rRemix/APlayer)
 
 
 ## 最后
