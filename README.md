@@ -23,13 +23,18 @@ This fork adds **tag-based music management** on top of the original project: ta
 ### Screenshots
 |   |   |   |   |
 |:-:|:-:|:-:|:-:|
-| <img src="screenshoots/12-tag-filter.png" width="200" alt="Tag Display in Song List" /> | <img src="screenshoots/13-tag-filter-expanded.png" width="200" alt="Tag Filter" /> | <img src="screenshoots/14-tag-manage.png" width="200" alt="Tag Manage" /> | <img src="screenshoots/15-tag-song.png" width="200" alt="Single Song Tag" /> |
+| <img src="screenshoots/12-tag-filter.jpg" width="200" alt="Tag Display in Song List" /> | <img src="screenshoots/13-tag-filter-expanded.png" width="200" alt="Tag Filter" /> | <img src="screenshoots/14-tag-manage.png" width="200" alt="Tag Manage" /> | <img src="screenshoots/15-tag-song.png" width="200" alt="Single Song Tag" /> |
 | Song List | Tag Filter | Tag Manage | Tag a Song |
 
 |   |   |
 |:-:|:-:|
-| <img src="screenshoots/16-tag-batch.png" width="200" alt="Batch Tag" /> | <img src="screenshoots/17-tag-settings.png" width="200" alt="Song List Settings" /> |
+| <img src="screenshoots/16-tag-batch.jpg" width="200" alt="Batch Tag" /> | <img src="screenshoots/17-tag-settings.png" width="200" alt="Song List Settings" /> |
 | Batch Tag | Song List Settings |
+
+|   |   |   |
+|:-:|:-:|:-:|
+| <img src="screenshoots/18-data-analysis.jpg" width="200" alt="Data Analysis Statistics" /> | <img src="screenshoots/19-data-analysis-charts.jpg" width="200" alt="Daily Stats & Trends" /> | <img src="screenshoots/20-data-analysis-heatmap.jpg" width="200" alt="Tag Ranking & Heatmaps" /> |
+| Data Analysis Statistics | Daily Stats & Trends | Tag Ranking & Heatmaps |
 
 ### Features
 - Tag-based music management: tag songs with "sleep aid / light music / piano / nostalgic" etc. and filter by tags; tags are written into the audio file custom field (`AUDIO_TAGS`), so they survive reinstall or device change

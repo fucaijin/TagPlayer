@@ -22,13 +22,18 @@ height="80">](https://apt.izzysoft.de/packages/remix.myplayer)
 ### 截图
 |   |   |   |   |
 |:-:|:-:|:-:|:-:|
-| <img src="screenshoots/12-tag-filter.png" width="200" alt="歌曲列表标签显示" /> | <img src="screenshoots/13-tag-filter-expanded.png" width="200" alt="标签过滤" /> | <img src="screenshoots/14-tag-manage.png" width="200" alt="标签管理" /> | <img src="screenshoots/15-tag-song.png" width="200" alt="单曲标签管理" /> |
+| <img src="screenshoots/12-tag-filter.jpg" width="200" alt="歌曲列表标签显示" /> | <img src="screenshoots/13-tag-filter-expanded.png" width="200" alt="标签过滤" /> | <img src="screenshoots/14-tag-manage.png" width="200" alt="标签管理" /> | <img src="screenshoots/15-tag-song.png" width="200" alt="单曲标签管理" /> |
 | 歌曲列表 | 标签过滤 | 标签管理 | 单曲打标签 |
 
 |   |   |
 |:-:|:-:|
-| <img src="screenshoots/16-tag-batch.png" width="200" alt="批量打标签" /> | <img src="screenshoots/17-tag-settings.png" width="200" alt="歌曲列表设置" /> |
+| <img src="screenshoots/16-tag-batch.jpg" width="200" alt="批量打标签" /> | <img src="screenshoots/17-tag-settings.png" width="200" alt="歌曲列表设置" /> |
 | 批量打标签 | 歌曲列表设置 |
+
+|   |   |   |
+|:-:|:-:|:-:|
+| <img src="screenshoots/18-data-analysis.jpg" width="200" alt="数据分析统计" /> | <img src="screenshoots/19-data-analysis-charts.jpg" width="200" alt="每日统计与趋势" /> | <img src="screenshoots/20-data-analysis-heatmap.jpg" width="200" alt="标签排行与热力图" /> |
+| 数据分析统计 | 每日统计与趋势 | 标签排行与热力图 |
 
 ### 特点
 - 标签管理音乐：给歌曲打上"助眠/轻音乐/钢琴/怀旧"等标签，支持按标签快速过滤；标签写入音频文件自定义字段（`AUDIO_TAGS`），重装应用/换设备不丢失
