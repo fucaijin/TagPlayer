@@ -148,14 +148,16 @@ class InAppUpdater @Inject constructor(
 
   /**
    * 从 release 的 tag 解析 versionCode。
-   * tag 形如 v2.1.1.0（兼容 v2.1.1.0-tag 等后缀），映射为 a*10000 + b*1000 + c*100 + d*10；
+   * tag 形如 v2.1.1.0（兼容 v2.1.1.0-tag 等后缀），映射为 a*10000 + b*1000 + c*100 + d，
+   * 与本地 [android.content.pm.PackageInfo.versionCode] 的编码方式保持一致
+   * （如 2.1.2.3 -> 2*10000 + 1*1000 + 2*100 + 3 = 21203）；
    * 解析失败返回 0（视为无更新）。
    */
   fun getOnlineVersionCode(release: Release): Int {
     val raw = release.tag_name?.takeIf { it.isNotBlank() } ?: release.name.orEmpty()
     val match = VERSION_REGEX.find(raw) ?: return 0
     val (major, minor, patch, build) = match.destructured
-    return major.toInt() * 10000 + minor.toInt() * 1000 + patch.toInt() * 100 + build.toInt() * 10
+    return major.toInt() * 10000 + minor.toInt() * 1000 + patch.toInt() * 100 + build.toInt()
   }
 
   companion object {

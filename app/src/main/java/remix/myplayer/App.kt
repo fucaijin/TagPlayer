@@ -6,13 +6,14 @@ import android.content.res.Configuration
 import android.os.Build
 import com.hjq.permissions.XXPermissions
 import dagger.hilt.android.HiltAndroidApp
+import remix.myplayer.R
 import remix.myplayer.helper.AppMigration
 import remix.myplayer.helper.AppUsageTracker
-import remix.myplayer.helper.LanguageHelper.onConfigurationChanged
 import remix.myplayer.helper.LanguageHelper.saveSystemCurrentLanguage
-import remix.myplayer.helper.LanguageHelper.setApplicationLanguage
-import remix.myplayer.helper.LanguageHelper.setLocal
 import remix.myplayer.helper.ThirdPartyInitializer
+import remix.myplayer.i18n.LocaleManager
+import remix.myplayer.i18n.StringKeys
+import java.util.Locale
 import remix.myplayer.misc.manager.APlayerActivityManager
 import remix.myplayer.ui.appshortcuts.DynamicShortcutManager
 import remix.myplayer.ui.screen.home.hackTabMinWidth
@@ -33,12 +34,17 @@ class App : Application() {
 
   override fun attachBaseContext(base: Context) {
     saveSystemCurrentLanguage()
-    super.attachBaseContext(setLocal(base))
+    // 必须在任何字符串解析之前注册，否则 StringProvider 只能拿到 key 本身
+    StringKeys.register(buildStringResIdMap())
+    super.attachBaseContext(LocaleManager.applyLocale(base, LocaleManager.activeTag(base)))
   }
 
   override fun onCreate() {
     super.onCreate()
     context = this
+
+    // 让「导出翻译模板」能够枚举全部 string 资源（以英文为源语言）
+    LocaleManager.defaultStringsProvider = { buildDefaultStringMap(this) }
 
     appMigration.check()
     setUp()
@@ -61,12 +67,50 @@ class App : Application() {
 
   private fun setUp() {
     XXPermissions.setCheckMode(false)
-    setApplicationLanguage(this)
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {
     super.onConfigurationChanged(newConfig)
-    onConfigurationChanged(applicationContext)
+    // 系统语言/区域变化（含横竖屏）会重置共享 Resources 的配置，这里重新套用当前选择
+    LocaleManager.syncProcessLocale(this)
+  }
+
+  /**
+   * 反射枚举 `R.string` 的「资源名 -> id」，注册给 [StringKeys]。
+   *
+   * 有了这张表，[remix.myplayer.i18n.StringProvider] 才能按资源名回退到真实的
+   * `strings.xml`（而不是返回裸 key），语言设置页等按 key 取值的界面才会跟随所选语言。
+   */
+  private fun buildStringResIdMap(): Map<String, Int> {
+    val map = HashMap<String, Int>(1024)
+    runCatching {
+      R.string::class.java.fields.forEach { field ->
+        runCatching { map[field.name] = field.getInt(null) }
+      }
+    }
+    return map
+  }
+
+  /**
+   * 枚举全部 string 资源名，并以英文配置读取其默认值，供「导出翻译模板」使用。
+   */
+  private fun buildDefaultStringMap(context: Context): Map<String, String> {
+    val enConfig = Configuration(context.resources.configuration).apply {
+      setLocale(Locale.ENGLISH)
+      setLayoutDirection(Locale.ENGLISH)
+    }
+    val enRes = context.createConfigurationContext(enConfig).resources
+    val map = LinkedHashMap<String, String>()
+    try {
+      R.string::class.java.fields.forEach { f ->
+        val name = f.name
+        val id = f.getInt(null)
+        val value = runCatching { enRes.getString(id) }.getOrNull() ?: return@forEach
+        map[name] = value
+      }
+    } catch (_: Exception) {
+    }
+    return map
   }
 
   override fun onLowMemory() {

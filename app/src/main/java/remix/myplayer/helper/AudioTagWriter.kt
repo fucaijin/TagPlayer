@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import remix.myplayer.R
+import remix.myplayer.data.db.room.AppDatabase
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.service.MusicService
 import remix.myplayer.ui.activity.base.BaseActivity
@@ -120,6 +121,16 @@ object AudioTagWriter {
   ) =
     withContext(Dispatchers.IO) {
       writeAudioTag(context, request, withFallback)
+      // 元数据（歌名/歌手/专辑）变更后，同步更新历史播放事件，
+      // 使数据分析的播放次数/时长/跳过/标签播放排行沿用最新歌名
+      runCatching {
+        AppDatabase.getInstance(context).playEventDao().updateMetaByPath(
+          path = request.song.data,
+          title = request.fieldMap[AudioTagFile.TITLE].orEmpty(),
+          artist = request.fieldMap[AudioTagFile.ARTIST].orEmpty(),
+          album = request.fieldMap[AudioTagFile.ALBUM].orEmpty()
+        )
+      }
       MediaScannerConnection.scanFile(
         context,
         arrayOf(request.song.data), null

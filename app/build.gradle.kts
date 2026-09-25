@@ -44,8 +44,8 @@ android {
         minSdk = 21
         targetSdk = 36
 
-        versionCode = 21202
-        versionName = "2.1.2.2"
+        versionCode = 21203
+        versionName = "2.1.2.3"
 
         vectorDrawables.useSupportLibrary = true
 
@@ -76,6 +76,8 @@ android {
     }
 
     androidResources {
+        // 注意：必须是 BCP-47 写法（zh-CN），不能用 Android 资源限定符写法（zh-rCN），
+        // 否则 AGP 9 的 localeFilters 匹配不到任何目录，会把全部本地化字符串剥离出 resources.arsc
         localeFilters += listOf(
             "en",
             "ja",
@@ -200,6 +202,17 @@ android {
     }
 
     dynamicFeatures += setOf(":feature_smb")
+
+    bundle {
+        // 关键：不要按语言拆分 bundle。
+        // 开启语言拆分后，values-zh-rCN / values-ja-rJP 的译文会被拆进 base-zh.apk / base-ja.apk，
+        // 而 AGP 的调试安装（makeApkFromBundle）并不会把这些语言分包装到设备上，
+        // 设备上只剩 base-master 的英文资源 —— 这就是「切换语言只有设置页生效、其它页面全英文」的根因。
+        // 本项目最终分发的是整包 APK，语言拆分没有意义，关掉即可。
+        language {
+            enableSplit = false
+        }
+    }
 
     room {
         schemaDirectory("$projectDir/schemas")

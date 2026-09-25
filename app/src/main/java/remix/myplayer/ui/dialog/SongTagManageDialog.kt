@@ -1,15 +1,11 @@
 package remix.myplayer.ui.dialog
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -24,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import remix.myplayer.R
 import remix.myplayer.data.model.audio.Song
-import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.widget.common.TagChip
 import remix.myplayer.ui.widget.common.TextSecondary
 import remix.myplayer.util.PermissionUtil
 import remix.myplayer.viewmodel.libraryViewModel
@@ -46,7 +42,8 @@ data class SongTagManageState(
 fun SongTagManageDialog() {
   val libraryVM = libraryViewModel
   val state by libraryVM.songTagManageState.collectAsStateWithLifecycle()
-  val allTags by libraryVM.allTags.collectAsStateWithLifecycle()
+  // 按设置的排序方式（智能排序 / 按创建时间固定位置）排列后的标签
+  val tags by libraryVM.orderedTags.collectAsStateWithLifecycle()
   val song = state.song
   // 写标签需要"所有文件访问"权限，未授权时先引导
   val storageDialogState = rememberDialogState()
@@ -76,7 +73,7 @@ fun SongTagManageDialog() {
       }
     },
     custom = {
-      if (allTags.isEmpty()) {
+      if (tags.isEmpty()) {
         TextSecondary(stringResource(R.string.no_tag))
       } else {
         // 标签较多时可滚动，避免超出弹窗显示范围
@@ -86,37 +83,17 @@ fun SongTagManageDialog() {
             .verticalScroll(rememberScrollState())
         ) {
           FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.padding(top = 8.dp)
           ) {
-            allTags.forEach { tag ->
-              val isSelected = tag in selected
-              Surface(
-                shape = RoundedCornerShape(50),
-                color = if (isSelected) LocalTheme.current.secondary else LocalTheme.current.mainBackground,
-                border = BorderStroke(
-                  width = 1.dp,
-                  color = if (isSelected) {
-                    LocalTheme.current.secondary
-                  } else {
-                    LocalTheme.current.textSecondary.copy(alpha = 0.5f)
-                  }
-                ),
-                onClick = {
-                  selected = if (isSelected) selected - tag else selected + tag
-                }
-              ) {
-                Text(
-                  text = tag,
-                  fontSize = 14.sp,
-                  modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                  color = if (isSelected) {
-                    LocalTheme.current.primaryReverse
-                  } else {
-                    LocalTheme.current.textPrimary
-                  }
-                )
-              }
+            tags.forEach { tag ->
+              TagChip(
+                tag = tag,
+                selected = tag in selected,
+                fontSize = 14.sp,
+                onClick = { selected = if (tag in selected) selected - tag else selected + tag }
+              )
             }
           }
         }

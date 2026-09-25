@@ -49,6 +49,7 @@ import remix.myplayer.data.prefs.ThemePrefs.Companion.DARK
 import remix.myplayer.data.prefs.ThemePrefs.Companion.LIGHT
 import remix.myplayer.misc.receiver.ExitReceiver
 import remix.myplayer.ui.nav.LocalNavController
+import remix.myplayer.ui.nav.RouteDataAnalysis
 import remix.myplayer.ui.nav.RouteHistory
 import remix.myplayer.ui.nav.RouteLastAdded
 import remix.myplayer.ui.nav.RouteSetting
@@ -65,6 +66,7 @@ private val drawerTitles = mutableListOf(
   R.string.drawer_song,
   R.string.drawer_history,
   R.string.drawer_recently_add,
+  R.string.data_analysis,
   R.string.drawer_setting,
   R.string.exit
 )
@@ -73,6 +75,7 @@ private val drawerIcons = mutableListOf(
   R.drawable.ic_library_music_24dp,
   R.drawable.ic_history_24dp,
   R.drawable.ic_recent_24dp,
+  R.drawable.ic_analytics_24dp,
   R.drawable.ic_settings_24dp,
   R.drawable.ic_exit_to_app_24dp
 )
@@ -167,6 +170,8 @@ fun Drawer(drawerState: DrawerState, vm: PlaybackViewModel = playbackViewModel) 
               R.string.drawer_history -> navController.navigate(RouteHistory)
               // 最近添加
               R.string.drawer_recently_add -> navController.navigate(RouteLastAdded)
+              // 数据分析
+              R.string.data_analysis -> navController.navigate(RouteDataAnalysis)
               // 设置
               R.string.drawer_setting -> navController.navigate(RouteSetting)
               // 退出

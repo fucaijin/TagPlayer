@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,13 +36,18 @@ import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.theme.popupButton
 import remix.myplayer.util.ext.clickWithRipple
 import remix.myplayer.viewmodel.PlayingScreenValue
+import remix.myplayer.viewmodel.libraryViewModel
 import remix.myplayer.viewmodel.mainViewModel
+import remix.myplayer.viewmodel.settingViewModel
+import java.io.File
 
 @Composable
 @Stable
 internal fun PlayingTopBar(song: Song, swatch: Palette.Swatch) {
   val mainVM = mainViewModel
   val scope = rememberCoroutineScope()
+  val settingState by settingViewModel.settingsState.collectAsStateWithLifecycle()
+  val songTags by libraryViewModel.songTags.collectAsStateWithLifecycle()
   val theme = LocalTheme.current
   val titleColor = if (theme.isLight) Color(swatch.titleTextColor) else theme.textPrimary
   val bodyColor = if (theme.isLight) Color(swatch.bodyTextColor) else theme.textSecondary
@@ -72,31 +78,38 @@ internal fun PlayingTopBar(song: Song, swatch: Palette.Swatch) {
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      val title = song.title
-      val artist = song.artist
-      val album = song.album
-
-      val detail = when {
-        artist == "" -> {
-          song.album
-        }
-
-        album == "" -> {
-          song.artist
-        }
-
-        else -> {
-          String.format("%s-%s", song.artist, song.album)
-        }
+      val title = if (settingState.common.useFilenameInPlayingTitle) {
+        File(song.data).nameWithoutExtension
+      } else {
+        song.title
       }
-
       Text(
         title.ifEmpty { stringResource(R.string.unknown_song) },
         color = titleColor,
         fontSize = 16.sp,
         maxLines = 1
       )
-      Text(detail, color = bodyColor, fontSize = 14.sp, maxLines = 1, textAlign = TextAlign.Center)
+      if (settingState.list.playingTitleShowArtistAlbum && song.artistAlbum.isNotEmpty()) {
+        Text(
+          song.artistAlbum,
+          color = bodyColor,
+          fontSize = 14.sp,
+          maxLines = 1,
+          textAlign = TextAlign.Center
+        )
+      }
+      if (settingState.list.playingTitleShowTag) {
+        val tags = songTags[song.data].orEmpty()
+        if (tags.isNotEmpty()) {
+          Text(
+            tags.joinToString(" ") { "#$it" },
+            color = bodyColor,
+            fontSize = 12.sp,
+            maxLines = 1,
+            textAlign = TextAlign.Center
+          )
+        }
+      }
     }
 
     var expanded by remember { mutableStateOf(false) }

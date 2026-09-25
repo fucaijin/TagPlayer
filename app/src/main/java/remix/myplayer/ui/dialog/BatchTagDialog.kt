@@ -1,6 +1,5 @@
 package remix.myplayer.ui.dialog
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,11 +7,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -30,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import remix.myplayer.R
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.widget.common.TagChip
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
 import remix.myplayer.util.PermissionUtil
@@ -52,7 +49,8 @@ data class BatchTagState(
 fun BatchTagDialog() {
   val libraryVM = libraryViewModel
   val state by libraryVM.batchTagState.collectAsStateWithLifecycle()
-  val allTags by libraryVM.allTags.collectAsStateWithLifecycle()
+  // 按设置的排序方式（智能排序 / 按创建时间固定位置）排列后的标签
+  val tags by libraryVM.orderedTags.collectAsStateWithLifecycle()
   val theme = LocalTheme.current
 
   var selected by remember { mutableStateOf(emptySet<String>()) }
@@ -62,7 +60,15 @@ fun BatchTagDialog() {
 
   LaunchedEffect(state.dialogState.isOpen) {
     if (state.dialogState.isOpen) {
-      selected = emptySet()
+      // 预选当前选中歌曲已有的标签（并集），确保打开弹窗时能看到这些歌曲已带的标签，
+      // 避免“无共同标签”时交集为空、看起来像没有回选。
+      selected = if (state.songs.isEmpty()) {
+        emptySet()
+      } else {
+        state.songs
+          .map { libraryVM.songTags.value[it.data] ?: emptySet() }
+          .fold(emptySet()) { acc, tags -> acc.union(tags) }
+      }
       newTagText = ""
     }
   }
@@ -91,7 +97,7 @@ fun BatchTagDialog() {
     custom = {
       TextSecondary(stringResource(R.string.select_tag_tip), fontSize = 14.sp)
 
-      if (allTags.isNotEmpty()) {
+      if (tags.isNotEmpty()) {
         // 标签较多时可滚动，避免撑高弹窗把底部按钮顶出屏幕
         Column(
           modifier = Modifier
@@ -99,30 +105,17 @@ fun BatchTagDialog() {
             .verticalScroll(rememberScrollState())
         ) {
           FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.padding(top = 8.dp)
           ) {
-            allTags.forEach { tag ->
-              val isSelected = tag in selected
-              Surface(
-                shape = RoundedCornerShape(50),
-                color = if (isSelected) theme.secondary else theme.mainBackground,
-                border = BorderStroke(
-                  width = 1.dp,
-                  color = if (isSelected) theme.secondary else theme.textSecondary.copy(alpha = 0.5f)
-                ),
-                onClick = {
-                  selected = if (isSelected) selected - tag else selected + tag
-                }
-              ) {
-                Text(
-                  text = tag,
-                  fontSize = 14.sp,
-                  modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                  color = if (isSelected) theme.primaryReverse else theme.textPrimary
-                )
-              }
+            tags.forEach { tag ->
+              TagChip(
+                tag = tag,
+                selected = tag in selected,
+                fontSize = 14.sp,
+                onClick = { selected = if (tag in selected) selected - tag else selected + tag }
+              )
             }
           }
         }

@@ -191,6 +191,7 @@
   <string name="donate_tip">あなたのご支援でアプリをより良いものに</string>
   <string name="support_donate_note">このページの寄付チャネルはすべてオリジナルプロジェクトAPlayerに属します。ご支援ありがとうございます！</string>
   <string name="jump_alipay_account">Alipayへ</string>
+  <string name="open_alipay">Alipayを開く</string>
   <string name="already_copy">クリップボードにコピーされました</string>
   <string name="confirm_delete_playlist">選択したプレイリストを削除してよろしいですか?</string>
   <string name="confirm_delete_from_playlist">プレイリストから削除してよろしいですか?</string>

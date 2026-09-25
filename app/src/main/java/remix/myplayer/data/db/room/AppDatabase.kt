@@ -17,6 +17,7 @@ import remix.myplayer.data.db.DbMigrations.migration8to9
 import remix.myplayer.data.db.DbMigrations.migration9to10
 import remix.myplayer.data.db.DbMigrations.migration10to11
 import remix.myplayer.data.db.DbMigrations.migration11to12
+import remix.myplayer.data.db.DbMigrations.migration12to13
 import remix.myplayer.data.db.room.dao.AppOpenSessionDao
 import remix.myplayer.data.db.room.dao.HistoryDao
 import remix.myplayer.data.db.room.dao.MetaDataCacheDao
@@ -93,7 +94,7 @@ abstract class AppDatabase : RoomDatabase() {
 
   companion object {
 
-    const val VERSION = 12
+    const val VERSION = 13
 
     @Volatile
     private var INSTANCE: AppDatabase? = null
@@ -123,6 +124,7 @@ abstract class AppDatabase : RoomDatabase() {
           .addMigrations(migration9to10)
           .addMigrations(migration10to11)
           .addMigrations(migration11to12)
+          .addMigrations(migration12to13)
           .build()
       database.invalidationTracker.addObserver(object :
         InvalidationTracker.Observer(PlayList.TABLE_NAME, PlayQueue.TABLE_NAME) {

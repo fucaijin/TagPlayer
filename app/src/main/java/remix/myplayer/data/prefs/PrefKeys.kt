@@ -161,8 +161,56 @@ object PrefKeys {
     /** 是否显示"音乐标签编辑"入口（列表条目菜单/播放页菜单） */
     const val LIST_TAG_EDIT = "list_tag_edit"
 
-    /** 标签过滤模式（包含与/包含或/互斥与/互斥或/全匹配） */
+    /** 歌曲列表底部栏的歌名是否使用文件名（而非元数据歌名） */
+    const val BOTTOM_BAR_USE_FILENAME = "bottom_bar_use_filename"
+
+    /** 播放页顶部标题是否使用文件名（而非元数据歌名） */
+    const val PLAYING_TITLE_USE_FILENAME = "playing_title_use_filename"
+
+    /** 歌曲列表排序菜单中可显示的排序规则集合（按此过滤，至少保留 1 项） */
+    const val SONG_SORT_RULES = "song_sort_rules"
+
+    /** 数据分析：各模块是否显示的开关集合 */
+    const val ANALYSIS_MODULES = "analysis_modules"
+
+    /** 数据分析：列表类模块的显示行数（旧版全局值，现仅作为未单独设置时的默认值） */
+    const val ANALYSIS_LIST_ROWS = "analysis_list_rows"
+
+    /** 数据分析：某个列表模块自己的显示行数（前缀 + 模块 key） */
+    const val ANALYSIS_MODULE_ROWS_PREFIX = "analysis_module_rows_"
+
+    /** 热力图横坐标显示的时间个数（24/12/8/6） */
+    const val HEATMAP_TIME_LABELS = "heatmap_columns"
+
+    /** 批量重命名默认模板（占位符：{title}{artist}{album}{track}{year}） */
+    const val DEFAULT_RENAME_TEMPLATE = "default_rename_template"
+
+    /** 歌曲列表底部栏的歌名下方是否显示该歌曲的标签 */
+    const val BOTTOM_BAR_SHOW_TAG = "bottom_bar_show_tag"
+
+    /** 播放页标题的歌名下方是否显示该歌曲的标签 */
+    const val PLAYING_TITLE_SHOW_TAG = "playing_title_show_tag"
+
+    /** 歌曲列表底部栏的歌名下方是否显示艺术家-专辑名 */
+    const val BOTTOM_BAR_SHOW_ARTIST_ALBUM = "bottom_bar_show_artist_album"
+
+    /** 播放页标题的歌名下方是否显示艺术家-专辑名 */
+    const val PLAYING_TITLE_SHOW_ARTIST_ALBUM = "playing_title_show_artist_album"
+
+    /** 标签过滤模式（包含与/包含或/互斥/全匹配） */
     const val TAG_FILTER_MODE = "tag_filter_mode"
+
+    /** 互斥模式下，左侧"包含"侧是否按"与"（同时带所有选中标签）过滤，否则按"或" */
+    const val TAG_FILTER_EXCLUDE_INCLUDE_AND = "tag_filter_exclude_include_and"
+
+    /** 互斥模式下，右侧"排除"侧是否按"与"（同时带所有选中标签才排除）过滤，否则按"或" */
+    const val TAG_FILTER_EXCLUDE_EXCLUDE_AND = "tag_filter_exclude_exclude_and"
+
+    /** 标签弹窗是否使用智能排序（最近使用时间 + 使用次数），否则按创建时间固定排列 */
+    const val TAG_SMART_SORT = "tag_smart_sort"
+
+    /** 固定位置排序时是否按标签创建时间倒序（新创建的在前），否则正序 */
+    const val TAG_CREATED_DESC = "tag_created_desc"
 
     /** 数据分析：一天的分界点小时（默认 5，即凌晨 5 点前算前一天） */
     const val STATS_DAY_START_HOUR = "stats_day_start_hour"

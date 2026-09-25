@@ -13,6 +13,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTooltipState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,8 +23,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -114,6 +118,23 @@ fun MultiSelectBar(
         }
       }
 
+      // 批量重命名（按模板重命名选中的本地歌曲文件）
+      TooltipButton(
+        icon = rememberVectorPainter(Icons.Filled.Edit),
+        text = stringResource(R.string.batch_rename),
+        tintColor = tintColor,
+        onClick = {
+          scope.launch {
+            mainVM.closeMultiSelect()
+            val songs =
+              withContext(Dispatchers.IO) { libraryVM.loadSongsByModels(state.selectedModels) }
+            if (songs.isNotEmpty()) {
+              libraryVM.showBatchRenameDialog(songs)
+            }
+          }
+        }
+      )
+
       if (state.where != MultiSelectState.Where.Genre) {
         TooltipButton(R.string.delete, R.drawable.ic_delete_black_24dp, tintColor) {
           mainVM.closeMultiSelect()
@@ -204,6 +225,30 @@ private fun TooltipButton(
       Icon(
         painter = painterResource(drRes),
         contentDescription = stringResource(strRes),
+        tint = tintColor
+      )
+    }
+  }
+}
+
+/** 以矢量图标 + 文案显示的tooltip按钮（用于无对应 drawable 资源的操作，如批量重命名） */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TooltipButton(
+  icon: Painter,
+  text: String,
+  tintColor: Color,
+  onClick: () -> Unit
+) {
+  TooltipBox(
+    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+    tooltip = { Text(text) },
+    state = rememberTooltipState()
+  ) {
+    IconButton(onClick = onClick) {
+      Icon(
+        painter = icon,
+        contentDescription = text,
         tint = tintColor
       )
     }

@@ -11,10 +11,15 @@ import androidx.compose.foundation.gestures.snapTo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import remix.myplayer.i18n.LocalStringProvider
+import remix.myplayer.i18n.LocaleManager
+import remix.myplayer.i18n.StringProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
@@ -134,10 +139,19 @@ fun AppCompositionLocalProvider(
   themeController: ThemeController,
   content: @Composable (() -> Unit)
 ) {
+  val context = LocalContext.current
+  val activeTag = LocaleManager.activeTag(context)
+  val stringProvider = remember(activeTag) {
+    StringProvider(
+      resources = context.resources,
+      override = LocaleManager.importedStrings(context, activeTag),
+    )
+  }
   CompositionLocalProvider(
     LocalThemeController provides themeController,
     LocalTheme provides themeController.appTheme,
-    LocalNavController provides rememberNavController()
+    LocalNavController provides rememberNavController(),
+    LocalStringProvider provides stringProvider,
   ) {
     ProvideViewModels {
       val settingState by settingViewModel.settingsState.collectAsStateWithLifecycle()

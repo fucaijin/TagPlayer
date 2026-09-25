@@ -1,5 +1,6 @@
 package remix.myplayer.helper
 
+import kotlin.jvm.Volatile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,6 +49,11 @@ class PlayEventTracker @Inject constructor(
   private var scope: CoroutineScope? = null
   private var session: Session? = null
 
+  /** 进行中会话的快照（供数据分析"今天最早/最晚"实时反映），用 volatile 保证跨线程可见 */
+  @Volatile private var liveStart: Long = 0L
+  @Volatile private var liveLastActive: Long = 0L
+  @Volatile private var isCurrentlyPlaying: Boolean = false
+
   /** 播放服务创建时调用 */
   fun attach(scope: CoroutineScope) {
     this.scope = scope
@@ -81,6 +87,9 @@ class PlayEventTracker @Inject constructor(
       maxPositionMs = positionMs.coerceAtLeast(0),
       lastTickTime = now
     )
+    liveStart = now
+    liveLastActive = now
+    isCurrentlyPlaying = true
   }
 
   /** 每秒 tick：累计播放时长（按秒归入所在的整点小时）与最大进度 */
@@ -98,6 +107,10 @@ class PlayEventTracker @Inject constructor(
       }
       current.lastActiveTime = now
       current.maxPositionMs = maxOf(current.maxPositionMs, positionMs.coerceAtLeast(0))
+      liveLastActive = now
+      isCurrentlyPlaying = true
+    } else {
+      isCurrentlyPlaying = false
     }
     current.lastTickTime = now
   }
@@ -105,12 +118,26 @@ class PlayEventTracker @Inject constructor(
   /** 暂停：记录"最后一次暂停时间"（用于统计最晚还在听音乐的时间） */
   fun onPaused() {
     session?.lastActiveTime = System.currentTimeMillis()
+    liveLastActive = System.currentTimeMillis()
+    isCurrentlyPlaying = false
   }
+
+  /** 当前进行中会话的开始时间（数据分析"今天最早=首次点击播放"用）；无进行中会话返回 null */
+  fun currentSessionStartTime(): Long? = if (liveStart > 0) liveStart else null
+
+  /** 当前进行中会话的最后活跃时间（最后一次播放 tick 或暂停的时刻） */
+  fun currentSessionLastActiveTime(): Long? = if (liveLastActive > 0) liveLastActive else null
+
+  /** 当前是否正在播放（数据分析"今天最晚=现在"用） */
+  fun isPlaying(): Boolean = isCurrentlyPlaying
 
   /** 结束当前会话并写入数据库 */
   fun finish(reason: FinishReason) {
     val current = session ?: return
     session = null
+    liveStart = 0L
+    liveLastActive = 0L
+    isCurrentlyPlaying = false
 
     // 太短的会话（误触/秒切）不记录
     if (current.playedMs < MIN_SESSION_MS && current.maxPositionMs <= 0) {
@@ -124,11 +151,13 @@ class PlayEventTracker @Inject constructor(
     scope?.launch {
       // duration 在缺失时会读文件，放到后台线程取
       val durationMs = withContext(Dispatchers.IO) { song.duration }
+      val reachedEnd = durationMs > 0 &&
+        (durationMs - current.maxPositionMs) <= LAST_15S_COMPLETE_MS
       val completed = if (durationMs > 0) {
         current.maxPositionMs >= durationMs * PlayEvent.COMPLETE_RATIO
       } else {
         current.playedMs >= PlayEvent.COMPLETE_FALLBACK_MS
-      }
+      } || reachedEnd
 
       repo.addPlayEvent(
         PlayEvent(
@@ -153,5 +182,8 @@ class PlayEventTracker @Inject constructor(
   private companion object {
     /** 小于该时长的会话不记录 */
     const val MIN_SESSION_MS = 2_000L
+
+    /** 倒数该时长内切歌，视作已听完（已完播） */
+    const val LAST_15S_COMPLETE_MS = 15_000L
   }
 }

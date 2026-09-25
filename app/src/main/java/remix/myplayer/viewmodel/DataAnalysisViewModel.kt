@@ -7,9 +7,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import remix.myplayer.R
+import remix.myplayer.helper.PlayEventTracker
+import remix.myplayer.data.prefs.SettingPrefs
 import remix.myplayer.repo.AppUsageStat
 import remix.myplayer.repo.DayPlayStat
 import remix.myplayer.repo.ListeningTrendPoint
@@ -21,6 +24,7 @@ import remix.myplayer.repo.SongTagRepository
 import remix.myplayer.repo.StatsTimeUtil
 import remix.myplayer.repo.TagPlayStat
 import remix.myplayer.ui.nav.MessageNotifier
+import remix.myplayer.ui.screen.AnalysisModule
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -36,6 +40,9 @@ enum class StatsRangePreset(@get:StringRes val labelRes: Int) {
   THIS_YEAR(R.string.stats_range_this_year)
 }
 
+/** 每日最早/最晚听歌的排序字段 */
+enum class ActiveSortBy { EARLIEST, LATEST }
+
 data class DataAnalysisState(
   val preset: StatsRangePreset = StatsRangePreset.LAST_30_DAYS,
   /** 是否使用自定义区间（两个 yyyyMMdd 输入框） */
@@ -47,8 +54,12 @@ data class DataAnalysisState(
   val playCountDesc: Boolean = true,
   val durationDesc: Boolean = true,
   val skippedDesc: Boolean = true,
+  /** 跳过排行是否按“跳过率”排序（否则按跳过次数） */
+  val skippedByRate: Boolean = false,
   val dailyDesc: Boolean = true,
   val activeDesc: Boolean = true,
+  /** 每日最早/最晚听歌按哪个字段排序 */
+  val activeSortBy: ActiveSortBy = ActiveSortBy.EARLIEST,
   val tagCountDesc: Boolean = true,
   val tagPlayDesc: Boolean = true,
   val searchDesc: Boolean = true,
@@ -67,8 +78,19 @@ data class DataAnalysisState(
   /** 一天的起始小时（默认 5 点） */
   val dayStartHour: Int = 5,
   /** 是否有任何播放数据 */
-  val hasPlayData: Boolean = false
-)
+  val hasPlayData: Boolean = false,
+  /** 数据分析：各模块是否显示（key 集合） */
+  val enabledModules: Set<String> = emptySet(),
+  /** 数据分析：各列表模块自己的显示行数（模块 key -> 行数） */
+  val moduleRows: Map<String, Int> = emptyMap(),
+  /** 热力图横坐标显示的时间个数（24/12/8/6，格子始终为 24 个） */
+  val heatmapTimeLabels: Int = 24
+) {
+
+  /** 某个列表模块实际显示的行数（未单独设置时用默认值） */
+  fun rowsOf(moduleKey: String): Int =
+    moduleRows[moduleKey] ?: SettingPrefs.DEFAULT_ANALYSIS_LIST_ROWS
+}
 
 /**
  * 数据分析：按选定时间区间统计播放次数/时长/跳过/标签/时段分布，以及应用使用习惯。
@@ -77,12 +99,20 @@ data class DataAnalysisState(
  */
 @HiltViewModel
 class DataAnalysisViewModel @Inject constructor(
+  private val settingPrefs: SettingPrefs,
   private val statsRepo: PlayStatsRepository,
   private val songTagRepo: SongTagRepository,
   private val searchHistoryRepo: SearchHistoryRepository,
+  private val playEventTracker: PlayEventTracker,
 ) : ViewModel() {
 
-  private val _state = MutableStateFlow(DataAnalysisState())
+  private val _state = MutableStateFlow(
+    DataAnalysisState(
+      enabledModules = settingPrefs.analysisModules,
+      moduleRows = AnalysisModule.entries.associate { it.key to settingPrefs.analysisModuleRows(it.key) },
+      heatmapTimeLabels = settingPrefs.heatmapTimeLabels
+    )
+  )
   val state = _state.asStateFlow()
 
   /** 修改统计区间后重新加载 */
@@ -133,12 +163,29 @@ class DataAnalysisViewModel @Inject constructor(
     load()
   }
 
+  /** 切换跳过排行按“次数”还是“跳过率”排序 */
+  fun toggleSkippedRate() {
+    _state.value = _state.value.copy(skippedByRate = !_state.value.skippedByRate)
+    load()
+  }
+
   fun toggleDailyOrder() {
     _state.value = _state.value.copy(dailyDesc = !_state.value.dailyDesc)
   }
 
   fun toggleActiveOrder() {
     _state.value = _state.value.copy(activeDesc = !_state.value.activeDesc)
+  }
+
+  /** 切换每日最早/最晚听歌的排序字段（最早 / 最晚） */
+  fun toggleActiveSortBy() {
+    _state.value = _state.value.copy(
+      activeSortBy = if (_state.value.activeSortBy == ActiveSortBy.EARLIEST) {
+        ActiveSortBy.LATEST
+      } else {
+        ActiveSortBy.EARLIEST
+      }
+    )
   }
 
   fun toggleTagCountOrder() {
@@ -153,6 +200,27 @@ class DataAnalysisViewModel @Inject constructor(
     _state.value = _state.value.copy(searchDesc = !_state.value.searchDesc)
   }
 
+  fun setEnabledModules(set: Set<String>) {
+    settingPrefs.analysisModules = set
+    _state.value = _state.value.copy(enabledModules = set)
+  }
+
+  /** 设置某个列表模块自己的显示行数（各模块互不影响，取值限制为 0~100） */
+  fun setModuleRows(moduleKey: String, rows: Int) {
+    settingPrefs.setAnalysisModuleRows(moduleKey, rows.coerceIn(0, 100))
+    _state.value = _state.value.copy(
+      moduleRows = _state.value.moduleRows +
+        (moduleKey to settingPrefs.analysisModuleRows(moduleKey))
+    )
+  }
+
+  /** 设置热力图横坐标显示的时间个数（必须是 24 的约数，否则回落为 24） */
+  fun setHeatmapTimeLabels(count: Int) {
+    val valid = if (count <= 0 || count > 24 || 24 % count != 0) 24 else count
+    settingPrefs.heatmapTimeLabels = valid
+    _state.value = _state.value.copy(heatmapTimeLabels = valid)
+  }
+
   fun load() {
     val current = _state.value
     val (from, to) = if (current.customRange) {
@@ -165,19 +233,32 @@ class DataAnalysisViewModel @Inject constructor(
     viewModelScope.launch {
       val result = withContext(Dispatchers.IO) {
         val dayStartHour = statsRepo.dayStartHour
+        val now = System.currentTimeMillis()
         val events = statsRepo.events(from, to)
         val activeEvents = statsRepo.activeEvents(from, to)
         val hourStats = statsRepo.hourStats(from, to)
         val sessions = statsRepo.appSessions(from, to)
         val tagsByPath = songTagRepo.allTagsByPath()
         val searchRanking = searchHistoryRepo.ranking(DEFAULT_LIMIT)
+        val active = mergeLiveSession(
+          base = statsRepo.dailyActiveTimes(activeEvents),
+          tracker = playEventTracker,
+          dayStartHour = dayStartHour,
+          now = now,
+          from = from,
+          to = to
+        )
         AnalysisResult(
           playCount = statsRepo.playCountRanking(events, !current.playCountDesc),
           duration = statsRepo.durationRanking(events, !current.durationDesc),
-          skipped = statsRepo.skippedRanking(events, !current.skippedDesc),
+          skipped = statsRepo.skippedRanking(
+            events,
+            !current.skippedDesc,
+            byRate = current.skippedByRate
+          ),
           daily = statsRepo.dailyPlayDurations(hourStats),
           trend = statsRepo.listeningTrend(hourStats, from, to),
-          active = statsRepo.dailyActiveTimes(activeEvents),
+          active = active,
           tagCounts = statsRepo.tagSongCounts(tagsByPath),
           tagPlays = statsRepo.tagPlayRanking(events, tagsByPath, !current.tagPlayDesc),
           searchRanking = searchRanking,
@@ -206,8 +287,7 @@ class DataAnalysisViewModel @Inject constructor(
     }
   }
 
-  private fun resolveRange(preset: StatsRangePreset): Pair<Long, Long> {
-    val now = System.currentTimeMillis()
+  private fun resolveRange(preset: StatsRangePreset): Pair<Long, Long> {    val now = System.currentTimeMillis()
     val hour = statsRepo.dayStartHour
     val calendar = Calendar.getInstance()
 
@@ -259,6 +339,58 @@ class DataAnalysisViewModel @Inject constructor(
       }
     }
     return start to now
+  }
+
+  /**
+   * 把"进行中会话"合并进每日最早/最晚统计，使"今天"这一行实时反映：
+   * - 最早：分界点后首次点击播放（= 进行中会话的 startTime，取更早者）；
+   * - 最晚：若当前正在播放则显示"现在"，否则显示今日最后一次暂停/关闭时的最后活跃时间。
+   * 进行中会话不在所选区间、且今天也不在区间内时，直接返回原结果。
+   */
+  private fun mergeLiveSession(
+    base: List<DayPlayStat>,
+    tracker: PlayEventTracker,
+    dayStartHour: Int,
+    now: Long,
+    from: Long,
+    to: Long,
+  ): List<DayPlayStat> {
+    val liveStart = tracker.currentSessionStartTime()
+    val playingNow = tracker.isPlaying()
+    val liveLast = tracker.currentSessionLastActiveTime()
+
+    val fromBucket = StatsTimeUtil.dayBucket(from, dayStartHour)
+    val toBucket = StatsTimeUtil.dayBucket(to, dayStartHour)
+    val todayBucket = StatsTimeUtil.dayBucket(now, dayStartHour)
+    val liveBucket = liveStart?.let { StatsTimeUtil.dayBucket(it, dayStartHour) }
+
+    if (liveBucket == null && !playingNow) return base
+    if (liveBucket != null && liveBucket !in fromBucket..toBucket && todayBucket !in fromBucket..toBucket) {
+      return base
+    }
+
+    val map = base.associateBy { it.dayBucket }.toMutableMap()
+
+    if (liveBucket != null && liveBucket in fromBucket..toBucket) {
+      val ls = liveStart!!
+      val existing = map[liveBucket]
+      val newEarliest = minOf(existing?.earliest ?: ls, ls)
+      val newLatest = if (playingNow && todayBucket == liveBucket) {
+        now
+      } else {
+        maxOf(existing?.latest ?: ls, liveLast ?: ls)
+      }
+      map[liveBucket] = existing?.copy(earliest = newEarliest, latest = newLatest)
+        ?: DayPlayStat(dayBucket = liveBucket, playedMs = 0, earliest = newEarliest, latest = newLatest)
+    }
+
+    // 只要当前正在播放，今天这一行的最晚就固定为"现在"
+    if (playingNow && todayBucket in fromBucket..toBucket) {
+      val t = map[todayBucket]
+      map[todayBucket] = (t ?: DayPlayStat(todayBucket, 0)).copy(latest = now)
+    }
+
+    return map.values.sortedByDescending { it.dayBucket }
   }
 
   private data class AnalysisResult(

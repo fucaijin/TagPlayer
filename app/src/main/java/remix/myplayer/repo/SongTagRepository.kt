@@ -6,9 +6,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import remix.myplayer.App
 import remix.myplayer.data.db.room.AppDatabase
 import remix.myplayer.data.db.room.entity.SongTagCache
+import remix.myplayer.data.db.room.entity.TagEntity
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.helper.SongTagFile
 import remix.myplayer.misc.MediaScanner
@@ -38,12 +40,46 @@ class SongTagRepository @Inject constructor(
       list.associate { it.path to SongTagFile.parseTags(it.tags) }
     }
 
-  /** 用户手动创建的标签流（未绑定歌曲的孤立标签也会出现） */
-  fun knownTagsFlow(): Flow<Set<String>> =
-    tagDao.observeAll().map { list -> list.map { it.name }.toSet() }
+  /** 标签表流（未绑定歌曲的孤立标签也会出现），含排序所需的创建时间与使用情况 */
+  fun knownTagsFlow(): Flow<List<TagEntity>> = tagDao.observeAll()
 
   /** 新建标签（同名已存在则忽略） */
-  suspend fun addKnownTag(name: String) = tagDao.insert(name)
+  suspend fun addKnownTag(name: String) {
+    val tag = name.trim()
+    if (tag.isEmpty()) return
+    tagDao.insert(TagEntity(name = tag, createdAt = System.currentTimeMillis()))
+  }
+
+  /**
+   * 保证这些标签在标签表中存在记录（缺失的按当前时间创建）。
+   * 从音频文件扫描到的标签也需要落表，才能参与"固定位置"（按创建时间）排序。
+   */
+  suspend fun ensureTagsExist(names: Collection<String>) {
+    val valid = names.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+    if (valid.isEmpty()) return
+    val existing = tagDao.allNames().toSet()
+    val missing = valid.filterNot { it in existing }
+    if (missing.isEmpty()) return
+    val now = System.currentTimeMillis()
+    missing.chunked(INSERT_BATCH).forEach { batch ->
+      tagDao.insertAll(batch.map { TagEntity(name = it, createdAt = now) })
+    }
+  }
+
+  /**
+   * 记录标签被使用：更新最后使用时间与使用次数（智能排序依据）。
+   * 标签尚不存在时先创建（此时使用次数记为 1）。
+   */
+  suspend fun recordTagsUsage(names: Collection<String>) {
+    val valid = names.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+    if (valid.isEmpty()) return
+    val now = System.currentTimeMillis()
+    valid.forEach { name ->
+      if (tagDao.increaseUsage(name, now) == 0) {
+        tagDao.insert(TagEntity(name = name, createdAt = now, useCount = 1, lastUsedAt = now))
+      }
+    }
+  }
 
   /** 删除标签 */
   suspend fun removeKnownTag(name: String) = tagDao.delete(name)
@@ -107,9 +143,9 @@ class SongTagRepository @Inject constructor(
         d.song.data, d.cached?.tags, d.cached?.updateTime ?: 0L, d.fileTime, d.mediaTime
       )
     }
-    if (toScan.isEmpty()) return
-
-    val scanned = withContext(Dispatchers.IO) {
+    val scanned = if (toScan.isEmpty()) {
+      emptyList<SongTagCache>()
+    } else withContext(Dispatchers.IO) {
       coroutineScope {
         toScan.chunked((toScan.size / PARALLELISM).coerceAtLeast(1)).map { partition ->
           async(Dispatchers.IO) { partition.mapNotNull(::scanSong) }
@@ -138,6 +174,14 @@ class SongTagRepository @Inject constructor(
     val stalePaths = existing.keys.filter { it !in validPaths }
     if (stalePaths.isNotEmpty()) {
       stalePaths.chunked(INSERT_BATCH).forEach { cacheDao.deleteByPaths(it) }
+    }
+
+    // 从音频文件扫描到的标签也落到标签表，这样它们才有创建时间，可参与"固定位置"排序
+    val allNames = (existing.values.asSequence() + scanned.asSequence())
+      .flatMap { SongTagFile.parseTags(it.tags).asSequence() }
+      .toSet()
+    if (allNames.isNotEmpty()) {
+      ensureTagsExist(allNames)
     }
   }
 
@@ -220,6 +264,47 @@ class SongTagRepository @Inject constructor(
     }.getOrNull()
   }
 
+  /** 将所有歌曲的标签导出为 JSON（path -> tags） */
+  suspend fun exportTagsJson(): String {
+    val map = allTagsByPath().mapValues { it.value.toList() }
+    return Json.encodeToString(map)
+  }
+
+  /**
+   * 从 JSON 恢复标签：写回音频文件与缓存表，并记录导入统计。
+   * 仅当文件路径在当前设备存在时才写入（路径不存在计入 missing）。
+   */
+  suspend fun importTagsJson(json: String): TagImportSummary {
+    val map = runCatching { Json.decodeFromString<Map<String, List<String>>>(json) }
+      .getOrElse { return TagImportSummary(0, 0, 0, error = it.message) }
+    var imported = 0
+    var failed = 0
+    var missing = 0
+    withContext(Dispatchers.IO) {
+      map.forEach { (path, tags) ->
+        val file = File(path)
+        if (!file.exists()) {
+          missing++
+          return@forEach
+        }
+        val tagSet = tags.filter { it.isNotBlank() }.toSet()
+        val ok = runCatching {
+          SongTagFile.writeTags(file, App.context.cacheDir, tagSet)
+          cacheDao.upsert(
+            SongTagCache(
+              path = path,
+              tags = tagSet.joinToString(SongTagFile.SEPARATOR),
+              updateTime = System.currentTimeMillis()
+            )
+          )
+          tagSet.forEach { addKnownTag(it) }
+        }.isSuccess
+        if (ok) imported++ else failed++
+      }
+    }
+    return TagImportSummary(imported, failed, missing)
+  }
+
   companion object {
     /** 并行扫描线程数 */
     private const val PARALLELISM = 8
@@ -239,4 +324,12 @@ private data class ScanDecision(
   val fileTime: Long,
   val mediaTime: Long,
   val needScan: Boolean
+)
+
+/** 标签导入结果统计 */
+data class TagImportSummary(
+  val imported: Int,
+  val failed: Int,
+  val missing: Int,
+  val error: String? = null
 )

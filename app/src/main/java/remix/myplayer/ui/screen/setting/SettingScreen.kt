@@ -8,7 +8,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -19,8 +21,7 @@ import remix.myplayer.ui.nav.LocalNavController
 import remix.myplayer.ui.nav.RouteAbout
 import remix.myplayer.ui.nav.RouteEq
 import remix.myplayer.ui.nav.RouteSettingDetail
-import remix.myplayer.ui.screen.DataAnalysisReport
-import remix.myplayer.ui.screen.setting.logic.analysis.StatsDayStartHourLogic
+import remix.myplayer.ui.screen.UsageGuideScreen
 import remix.myplayer.ui.screen.setting.logic.color.BlackThemeLogic
 import remix.myplayer.ui.screen.setting.logic.color.ColoredNaviBarLogic
 import remix.myplayer.ui.screen.setting.logic.color.DarkThemeLogic
@@ -37,6 +38,10 @@ import remix.myplayer.ui.screen.setting.logic.common.RestoreDeleteLogic
 import remix.myplayer.ui.screen.setting.logic.common.ScanSizeLogic
 import remix.myplayer.ui.screen.setting.logic.common.ShakeLogic
 import remix.myplayer.ui.screen.setting.logic.common.ShowDisplayNameLogic
+import remix.myplayer.ui.screen.setting.logic.common.FilenameDisplayLogic
+import remix.myplayer.ui.screen.setting.logic.common.SongTagIOLogic
+import remix.myplayer.ui.screen.setting.logic.list.DefaultRenameTemplateLogic
+import remix.myplayer.ui.screen.setting.logic.list.SongSortRulesLogic
 import remix.myplayer.ui.screen.setting.logic.common.UiFontScaleLogic
 import remix.myplayer.ui.screen.setting.logic.cover.AutoDownloadLogic
 import remix.myplayer.ui.screen.setting.logic.cover.DownloadSourceLogic
@@ -45,6 +50,10 @@ import remix.myplayer.ui.screen.setting.logic.library.LibraryLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListShowArtistAlbumLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListShowNumberLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListShowTagLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListBottomBarArtistAlbumLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListBottomBarTagLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListPlayingTitleArtistAlbumLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListPlayingTitleTagLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListTagEditLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListTagManageLogic
 import remix.myplayer.ui.screen.setting.logic.lyric.DesktopLyricLogic
@@ -59,6 +68,8 @@ import remix.myplayer.ui.screen.setting.logic.other.ClearSearchHistoryLogic
 import remix.myplayer.ui.screen.setting.logic.other.ExportLogLogic
 import remix.myplayer.ui.screen.setting.logic.other.LogEnabledLogic
 import remix.myplayer.ui.screen.setting.logic.play.AutoPlayLogic
+import remix.myplayer.ui.screen.setting.logic.tag.TagFixedSortLogic
+import remix.myplayer.ui.screen.setting.logic.tag.TagSmartSortLogic
 import remix.myplayer.ui.screen.setting.logic.play.DecoderModeLogic
 import remix.myplayer.ui.screen.setting.logic.play.IgnoreAudioFocusLogic
 import remix.myplayer.ui.screen.setting.logic.play.ListLoopLogic
@@ -71,6 +82,7 @@ import remix.myplayer.ui.screen.setting.logic.playingscreen.PlayingScreenBottomL
 import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.widget.common.CommonAppBar
 import remix.myplayer.viewmodel.mainViewModel
+import remix.myplayer.viewmodel.settingViewModel
 
 @Composable
 fun SettingScreen() {
@@ -116,11 +128,12 @@ fun SettingDetailScreen(categoryKey: String) {
           SettingCategory.Color -> ColorPreferenceItems()
           SettingCategory.Library -> LibraryPreferenceItems()
           SettingCategory.List -> ListPreferenceItems()
+          SettingCategory.Tag -> TagPreferenceItems()
           SettingCategory.PlayingScreen -> PlayingScreenPreferenceItems()
           SettingCategory.Cover -> CoverPreferenceItems()
           SettingCategory.Lyric -> LyricPreferenceItems()
           SettingCategory.Notification -> NotificationPreferenceItems()
-          SettingCategory.DataAnalysis -> DataAnalysisPreferenceItems()
+          SettingCategory.Usage -> UsageGuideScreen()
           SettingCategory.Other -> OtherPreferenceItems()
         }
       }
@@ -177,6 +190,12 @@ private enum class SettingCategory(
     R.string.setting_list_desc,
     "list"
   ),
+  Tag(
+    R.drawable.ic_label_24dp,
+    R.string.tag_manage,
+    R.string.setting_tag_desc,
+    "tag"
+  ),
   PlayingScreen(
     R.drawable.ic_smart_display_24dp,
     R.string.playing_screen,
@@ -191,13 +210,8 @@ private enum class SettingCategory(
     R.string.setting_notification_desc,
     "notification"
   ),
-  DataAnalysis(
-    R.drawable.ic_lab_profile_24dp,
-    R.string.data_analysis,
-    R.string.setting_data_analysis_desc,
-    "data_analysis"
-  ),
-  Other(R.drawable.ic_info_outlined_24dp, R.string.other, R.string.setting_other_desc, "other");
+  Other(R.drawable.ic_info_outlined_24dp, R.string.other, R.string.setting_other_desc, "other"),
+  Usage(R.drawable.ic_info_outlined_24dp, R.string.usage, R.string.setting_usage_desc, "usage");
 
   companion object {
 
@@ -230,6 +244,8 @@ private fun CommonPreferenceItems() {
   ShakeLogic()
 
   ShowDisplayNameLogic()
+
+  FilenameDisplayLogic()
 }
 
 @Composable
@@ -266,6 +282,8 @@ private fun ColorPreferenceItems() {
 @Composable
 private fun LibraryPreferenceItems() {
   LibraryLogic()
+
+  SongSortRulesLogic()
 }
 
 @Composable
@@ -276,9 +294,34 @@ private fun ListPreferenceItems() {
 
   ListTagEditLogic()
 
+  SongTagIOLogic()
+
+  DefaultRenameTemplateLogic()
+
   ListShowNumberLogic()
 
   ListShowArtistAlbumLogic()
+
+  ListBottomBarTagLogic()
+
+  ListPlayingTitleTagLogic()
+
+  ListBottomBarArtistAlbumLogic()
+
+  ListPlayingTitleArtistAlbumLogic()
+}
+
+@Composable
+private fun TagPreferenceItems() {
+  val settingVM = settingViewModel
+  val settingState by settingVM.settingsState.collectAsStateWithLifecycle()
+
+  TagSmartSortLogic()
+
+  // 排序依据只在"固定位置"下有意义
+  if (!settingState.tag.smartSort) {
+    TagFixedSortLogic()
+  }
 }
 
 @Composable
@@ -317,13 +360,6 @@ private fun LyricPreferenceItems() {
   StatusBarLyricLogic()
 
   LyricPriorityLogic()
-}
-
-@Composable
-private fun DataAnalysisPreferenceItems() {
-  StatsDayStartHourLogic()
-
-  DataAnalysisReport()
 }
 
 @Composable

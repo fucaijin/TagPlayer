@@ -119,6 +119,14 @@ sealed class Song(
   val showName: String
     get() = if (!settingPrefs.showDisplayName) title else displayName
 
+  /** "艺术家-专辑名"，其中一个为空时只显示另一个 */
+  val artistAlbum: String
+    get() = when {
+      artist.isEmpty() -> album
+      album.isEmpty() -> artist
+      else -> String.format("%s-%s", artist, album)
+    }
+
   override fun getKey(): String {
     return id.toString()
   }

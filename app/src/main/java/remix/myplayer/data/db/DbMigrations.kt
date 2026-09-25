@@ -105,4 +105,15 @@ internal object DbMigrations {
       db.execSQL("INSERT INTO `PlayHourStat` (`hourStart`, `playedMs`) SELECT (`startTime` / 3600000) * 3600000, `playedMs` FROM `PlayEvent` WHERE `playedMs` > 0")
     }
   }
+
+  val migration12to13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      // 标签排序所需的三个字段：创建时间（固定位置排序）、使用次数与最后使用时间（智能排序）
+      db.execSQL("ALTER TABLE `TagEntity` ADD COLUMN `createdAt` INTEGER NOT NULL DEFAULT 0")
+      db.execSQL("ALTER TABLE `TagEntity` ADD COLUMN `useCount` INTEGER NOT NULL DEFAULT 0")
+      db.execSQL("ALTER TABLE `TagEntity` ADD COLUMN `lastUsedAt` INTEGER NOT NULL DEFAULT 0")
+      // 旧标签没有创建时间，统一回填当前时间（排序时再按名称兜底，保证顺序稳定）
+      db.execSQL("UPDATE `TagEntity` SET `createdAt` = ?", arrayOf<Any?>(System.currentTimeMillis()))
+    }
+  }
 }

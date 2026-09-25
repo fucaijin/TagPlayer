@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.RadioButton
@@ -63,6 +65,7 @@ fun NormalDialog(
   itemsCallbackSingleChoice: ItemsCallbackSingleChoice? = null,
   itemsCallbackMultiChoice: ItemsCallbackMultiChoice? = null,
   usePlatformDefaultWidth: Boolean = true,
+  contentScrollable: Boolean = itemRes == null && custom == null,
 ) {
   NormalDialog(
     dialogState,
@@ -85,7 +88,8 @@ fun NormalDialog(
     itemsCallback = itemsCallback,
     itemsCallbackSingleChoice = itemsCallbackSingleChoice,
     itemsCallbackMultiChoice = itemsCallbackMultiChoice,
-    usePlatformDefaultWidth = usePlatformDefaultWidth
+    usePlatformDefaultWidth = usePlatformDefaultWidth,
+    contentScrollable = contentScrollable
   )
 }
 
@@ -111,6 +115,9 @@ fun NormalDialog(
   itemsCallbackSingleChoice: ItemsCallbackSingleChoice? = null,
   itemsCallbackMultiChoice: ItemsCallbackMultiChoice? = null,
   usePlatformDefaultWidth: Boolean = true,
+  // when true, the body(title/content/items/custom) is scrollable and buttons are always
+  // pinned to the bottom of the dialog, so long content never pushes buttons off the screen
+  contentScrollable: Boolean = items == null && custom == null,
 ) {
   BaseDialog(
     show = dialogState.isOpen,
@@ -128,95 +135,102 @@ fun NormalDialog(
       modifier = Modifier.padding(containerPadding),
       verticalArrangement = Arrangement.spacedBy(contentSpacer)
     ) {
-      if (title != null) {
-        TextPrimary(
-          title,
-          fontSize = 18.sp,
-          fontWeight = FontWeight.Bold,
-          maxLine = Int.MAX_VALUE,
-          modifier = Modifier.align(titleAlignment)
-        )
-      }
+      Column(
+        modifier = Modifier
+          .weight(1f, fill = false)
+          .then(if (contentScrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier),
+        verticalArrangement = Arrangement.spacedBy(contentSpacer)
+      ) {
+        if (title != null) {
+          TextPrimary(
+            title,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            maxLine = Int.MAX_VALUE,
+            modifier = Modifier.align(titleAlignment)
+          )
+        }
 
-      if (content != null) {
-        TextPrimary(content, fontSize = 15.sp, maxLine = Int.MAX_VALUE)
-      }
+        if (content != null) {
+          TextPrimary(content, fontSize = 15.sp, maxLine = Int.MAX_VALUE)
+        }
 
-      if (items != null) {
-        LazyColumn(modifier = Modifier.weight(1f, false)) {
-          itemsIndexed(items) { index, item ->
-            if (itemsCallback != null) {
-              TextPrimary(
-                item,
-                fontSize = 16.sp,
-                modifier = Modifier
-                  .clickWithRipple(false) {
-                    if (autoDismiss) {
-                      dialogState.dismiss()
+        if (items != null) {
+          LazyColumn(modifier = Modifier.weight(1f, false)) {
+            itemsIndexed(items) { index, item ->
+              if (itemsCallback != null) {
+                TextPrimary(
+                  item,
+                  fontSize = 16.sp,
+                  modifier = Modifier
+                    .clickWithRipple(false) {
+                      if (autoDismiss) {
+                        dialogState.dismiss()
+                      }
+                      if (index in items.indices) {
+                        itemsCallback(index, items[index])
+                      }
                     }
-                    if (index in items.indices) {
-                      itemsCallback(index, items[index])
-                    }
-                  }
-                  .fillMaxWidth()
-                  .padding(vertical = 12.dp)
-              )
-            } else if (itemsCallbackSingleChoice != null) {
-              Row(
-                modifier = Modifier
-                  .clickWithRipple(false) {
-                    if (autoDismiss) {
-                      dialogState.dismiss()
-                    }
-                    itemsCallbackSingleChoice.onSelect(index)
-                  }
-                  .fillMaxWidth()
-                  .padding(horizontal = 0.dp, vertical = 12.dp),
-
-                verticalAlignment = Alignment.CenterVertically
-              ) {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                  RadioButton(
-                    modifier = Modifier.padding(end = 8.dp),
-                    selected = itemsCallbackSingleChoice.selected == index,
-                    onClick = {
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+                )
+              } else if (itemsCallbackSingleChoice != null) {
+                Row(
+                  modifier = Modifier
+                    .clickWithRipple(false) {
                       if (autoDismiss) {
                         dialogState.dismiss()
                       }
                       itemsCallbackSingleChoice.onSelect(index)
-                    })
-                }
-                TextPrimary(item, fontSize = 15.sp)
-              }
-            } else if (itemsCallbackMultiChoice != null) {
-              val checked = itemsCallbackMultiChoice.selectedIndices.contains(index)
-              Row(
-                modifier = Modifier
-                  .clickWithRipple(false) {
-                    itemsCallbackMultiChoice.onCheckChange(index, !checked)
-                  }
-                  .fillMaxWidth()
-                  .padding(horizontal = 0.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-              ) {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                  Checkbox(
-                    modifier = Modifier.padding(end = 8.dp),
-                    checked = checked,
-                    onCheckedChange = {
-                      itemsCallbackMultiChoice.onCheckChange(index, it)
-                    })
-                }
-                TextPrimary(item, fontSize = 15.sp)
-              }
+                    }
+                    .fillMaxWidth()
+                    .padding(horizontal = 0.dp, vertical = 12.dp),
 
-            } else {
-              throw IllegalArgumentException("no available callback")
+                  verticalAlignment = Alignment.CenterVertically
+                ) {
+                  CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    RadioButton(
+                      modifier = Modifier.padding(end = 8.dp),
+                      selected = itemsCallbackSingleChoice.selected == index,
+                      onClick = {
+                        if (autoDismiss) {
+                          dialogState.dismiss()
+                        }
+                        itemsCallbackSingleChoice.onSelect(index)
+                      })
+                  }
+                  TextPrimary(item, fontSize = 15.sp)
+                }
+              } else if (itemsCallbackMultiChoice != null) {
+                val checked = itemsCallbackMultiChoice.selectedIndices.contains(index)
+                Row(
+                  modifier = Modifier
+                    .clickWithRipple(false) {
+                      itemsCallbackMultiChoice.onCheckChange(index, !checked)
+                    }
+                    .fillMaxWidth()
+                    .padding(horizontal = 0.dp, vertical = 12.dp),
+                  verticalAlignment = Alignment.CenterVertically
+                ) {
+                  CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    Checkbox(
+                      modifier = Modifier.padding(end = 8.dp),
+                      checked = checked,
+                      onCheckedChange = {
+                        itemsCallbackMultiChoice.onCheckChange(index, it)
+                      })
+                  }
+                  TextPrimary(item, fontSize = 15.sp)
+                }
+
+              } else {
+                throw IllegalArgumentException("no available callback")
+              }
             }
           }
+        } else if (custom != null) {
+          custom()
         }
-      } else if (custom != null) {
-        custom()
       }
 
       if (positive != null || neutral != null || negative != null) {

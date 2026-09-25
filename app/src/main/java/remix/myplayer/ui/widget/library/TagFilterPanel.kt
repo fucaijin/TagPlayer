@@ -1,6 +1,6 @@
 package remix.myplayer.ui.widget.library
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -9,22 +9,22 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,6 +33,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -44,6 +46,7 @@ import remix.myplayer.R
 import remix.myplayer.data.model.misc.TagFilterMode
 import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.theme.icon
+import remix.myplayer.ui.widget.common.TagChip
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.util.ext.clickWithRipple
 
@@ -64,6 +67,10 @@ fun TagFilterPanel(
   mode: TagFilterMode,
   includedTags: Set<String>,
   excludedTags: Set<String>,
+  includeAnd: Boolean,
+  excludeAnd: Boolean,
+  onIncludeAndChange: (Boolean) -> Unit,
+  onExcludeAndChange: (Boolean) -> Unit,
   searchQuery: String,
   onSearchQueryChange: (String) -> Unit,
   onModeChange: (TagFilterMode) -> Unit,
@@ -172,7 +179,7 @@ fun TagFilterPanel(
       }
 
       if (mode.isExclusive) {
-        // 互斥模式：左"包含"、右"排除"
+        // 互斥模式：左"包含"、右"排除"，每侧顶部各带一个"与/或"开关
         Row(
           modifier = Modifier
             .weight(1f)
@@ -183,6 +190,8 @@ fun TagFilterPanel(
               .weight(1f)
               .fillMaxHeight(),
             title = stringResource(R.string.tag_filter_include),
+            andSwitch = includeAnd,
+            onAndChange = onIncludeAndChange,
             tags = filteredTags,
             selectedTags = includedTags,
             onToggleTag = onToggleIncludeTag
@@ -198,6 +207,8 @@ fun TagFilterPanel(
               .weight(1f)
               .fillMaxHeight(),
             title = stringResource(R.string.tag_filter_exclude),
+            andSwitch = excludeAnd,
+            onAndChange = onExcludeAndChange,
             tags = filteredTags,
             selectedTags = excludedTags,
             onToggleTag = onToggleExcludeTag
@@ -244,6 +255,8 @@ fun TagFilterPanel(
 private fun TagChipColumn(
   modifier: Modifier,
   title: String?,
+  andSwitch: Boolean? = null,
+  onAndChange: ((Boolean) -> Unit)? = null,
   tags: List<String>,
   selectedTags: Set<String>,
   onToggleTag: (String) -> Unit,
@@ -255,8 +268,28 @@ private fun TagChipColumn(
       .verticalScroll(rememberScrollState())
       .padding(horizontal = 16.dp, vertical = 4.dp)
   ) {
-    if (title != null) {
-      TextPrimary(title, fontSize = 12.sp, color = theme.textSecondary)
+    if (title != null || andSwitch != null) {
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+      ) {
+        if (title != null) {
+          TextPrimary(title, fontSize = 12.sp, color = theme.textSecondary)
+        }
+        if (andSwitch != null) {
+          Spacer(modifier = Modifier.weight(1f))
+          TextPrimary(
+            stringResource(R.string.tag_filter_and),
+            fontSize = 12.sp,
+            color = theme.textSecondary
+          )
+          SmallSwitch(
+            checked = andSwitch,
+            onCheckedChange = { onAndChange?.invoke(it) }
+          )
+        }
+      }
     }
     if (tags.isEmpty()) {
       TextPrimary(
@@ -267,30 +300,61 @@ private fun TagChipColumn(
       )
     } else {
       FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(top = 4.dp)
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = Modifier.padding(top = 2.dp)
       ) {
         tags.forEach { tag ->
-          val isSelected = tag in selectedTags
-          Surface(
-            shape = RoundedCornerShape(50),
-            color = if (isSelected) theme.secondary else theme.mainBackground,
-            border = BorderStroke(
-              width = 1.dp,
-              color = if (isSelected) theme.secondary else theme.textSecondary.copy(alpha = 0.5f)
-            ),
+          TagChip(
+            tag = tag,
+            selected = tag in selectedTags,
             onClick = { onToggleTag(tag) }
-          ) {
-            Text(
-              text = tag,
-              fontSize = 13.sp,
-              modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-              color = if (isSelected) theme.primaryReverse else theme.textPrimary
-            )
-          }
+          )
         }
       }
+    }
+  }
+}
+
+/** 紧凑开关：轨道高度与"与"文字相当，避免默认的 Material 开关把行高撑大 */
+@Composable
+private fun SmallSwitch(
+  checked: Boolean,
+  onCheckedChange: (Boolean) -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  val theme = LocalTheme.current
+  val trackWidth = 26.dp
+  val trackHeight = 14.dp
+  val thumbSize = 10.dp
+  val thumbPadding = 2.dp
+  val travel = trackWidth - thumbSize - thumbPadding * 2
+  val offset by animateDpAsState(
+    targetValue = if (checked) travel else 0.dp,
+    label = "smallSwitchOffset"
+  )
+
+  // 外层稍高一点，保证点击区域不至于太小；可见轨道只有 trackHeight
+  Box(
+    modifier = modifier
+      .size(width = trackWidth, height = 18.dp)
+      .clickWithRipple { onCheckedChange(!checked) },
+    contentAlignment = Alignment.Center
+  ) {
+    Box(
+      modifier = Modifier
+        .size(width = trackWidth, height = trackHeight)
+        .clip(CircleShape)
+        .background(if (checked) theme.secondary else theme.textSecondary.copy(alpha = 0.35f)),
+      contentAlignment = Alignment.CenterStart
+    ) {
+      Box(
+        modifier = Modifier
+          .padding(horizontal = thumbPadding)
+          .offset(x = offset)
+          .size(thumbSize)
+          .background(if (checked) theme.primaryReverse else Color.White, CircleShape)
+      )
     }
   }
 }

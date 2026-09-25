@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import remix.myplayer.data.model.misc.TagFilterMode
+import remix.myplayer.data.model.misc.TagSortSetting
 import remix.myplayer.helper.LanguageHelper.AUTO
 import remix.myplayer.helper.SortOrder
 import remix.myplayer.util.Constants.MB
@@ -122,6 +123,63 @@ class SettingPrefs @Inject constructor(
   var playAtBreakPoint by PrefsDelegate(sp, PrefKeys.Setting.PLAY_AT_BREAKPOINT, false)
   var shake by PrefsDelegate(sp, PrefKeys.Setting.SHAKE, false)
   var showDisplayName by PrefsDelegate(sp, PrefKeys.Setting.SHOW_DISPLAYNAME, false)
+  var bottomBarUseFilename by PrefsDelegate(sp, PrefKeys.Setting.BOTTOM_BAR_USE_FILENAME, false)
+  var playingTitleUseFilename by PrefsDelegate(sp, PrefKeys.Setting.PLAYING_TITLE_USE_FILENAME, false)
+
+  /** 歌曲列表排序菜单中可显示的排序规则集合（至少保留 1 项），默认全部显示 */
+  var songSortRules by PrefsDelegate(
+    sp,
+    PrefKeys.Setting.SONG_SORT_RULES,
+    setOf(
+      SortOrder.SONG_A_Z, SortOrder.SONG_Z_A,
+      SortOrder.DISPLAY_NAME_A_Z, SortOrder.DISPLAY_NAME_Z_A,
+      SortOrder.ALBUM_A_Z, SortOrder.ALBUM_Z_A,
+      SortOrder.ARTIST_A_Z, SortOrder.ARTIST_Z_A,
+      SortOrder.DATE, SortOrder.DATE_DESC
+    )
+  )
+
+  /** 数据分析：各模块是否显示的开关集合（默认全部显示） */
+  var analysisModules by PrefsDelegate(
+    sp,
+    PrefKeys.Setting.ANALYSIS_MODULES,
+    setOf(
+      "app_usage", "play_count", "play_duration", "skipped",
+      "daily_duration", "trend", "daily_active", "tag_song_count",
+      "favorite_tags", "search_ranking", "heatmap", "heatmap_24h"
+    )
+  )
+  /** 数据分析：列表类模块的显示行数（默认 10，范围 5~100）。旧版全局值，仅用于未单独设置时兜底 */
+  var analysisListRows by PrefsDelegate(sp, PrefKeys.Setting.ANALYSIS_LIST_ROWS, DEFAULT_ANALYSIS_LIST_ROWS)
+
+  /** 数据分析：某个列表模块自己的显示行数；未单独设置过则沿用全局行数（兼容旧设置） */
+  fun analysisModuleRows(moduleKey: String): Int {
+    val key = PrefKeys.Setting.ANALYSIS_MODULE_ROWS_PREFIX + moduleKey
+    return if (sp.contains(key)) {
+      sp.getInt(key, DEFAULT_ANALYSIS_LIST_ROWS)
+    } else {
+      analysisListRows
+    }
+  }
+
+  /** 数据分析：设置某个列表模块自己的显示行数 */
+  fun setAnalysisModuleRows(moduleKey: String, rows: Int) {
+    sp.edit(commit = true) {
+      putInt(
+        PrefKeys.Setting.ANALYSIS_MODULE_ROWS_PREFIX + moduleKey,
+        rows.coerceIn(MIN_ANALYSIS_LIST_ROWS, MAX_ANALYSIS_LIST_ROWS)
+      )
+    }
+  }
+  /** 热力图横坐标显示的时间个数（24/12/8/6，默认 24；格子始终 24 个） */
+  var heatmapTimeLabels by PrefsDelegate(sp, PrefKeys.Setting.HEATMAP_TIME_LABELS, 24)
+
+  /** 批量重命名默认模板（占位符：{title}{artist}{album}{track}{year}），打开弹窗时预填 */
+  var defaultRenameTemplate by PrefsDelegate(
+    sp,
+    PrefKeys.Setting.DEFAULT_RENAME_TEMPLATE,
+    "{artist} - {title}"
+  )
 
   // 歌曲列表相关开关
   var listShowTag by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_TAG, true)
@@ -130,12 +188,52 @@ class SettingPrefs @Inject constructor(
   var listShowNumber by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_NUMBER, true)
   var listShowArtistAlbum by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_ARTIST_ALBUM, true)
 
+  /** 歌曲列表底部栏的歌名下方是否显示该歌曲的标签 */
+  var bottomBarShowTag by PrefsDelegate(sp, PrefKeys.Setting.BOTTOM_BAR_SHOW_TAG, true)
+
+  /** 播放页标题的歌名下方是否显示该歌曲的标签 */
+  var playingTitleShowTag by PrefsDelegate(sp, PrefKeys.Setting.PLAYING_TITLE_SHOW_TAG, true)
+
+  /** 歌曲列表底部栏的歌名下方是否显示艺术家-专辑名 */
+  var bottomBarShowArtistAlbum by PrefsDelegate(
+    sp,
+    PrefKeys.Setting.BOTTOM_BAR_SHOW_ARTIST_ALBUM,
+    true
+  )
+
+  /** 播放页标题的歌名下方是否显示艺术家-专辑名 */
+  var playingTitleShowArtistAlbum by PrefsDelegate(
+    sp,
+    PrefKeys.Setting.PLAYING_TITLE_SHOW_ARTIST_ALBUM,
+    true
+  )
+
   /** 标签过滤模式（TagFilterMode.name），下次启动保持上次选择 */
   var tagFilterMode by PrefsDelegate(
     sp,
     PrefKeys.Setting.TAG_FILTER_MODE,
     TagFilterMode.INCLUDE_AND.name
   )
+
+  /** 互斥模式下左侧"包含"侧是否按"与"过滤（同时带所有选中标签），否则按"或" */
+  var tagFilterExcludeIncludeAnd by PrefsDelegate(
+    sp,
+    PrefKeys.Setting.TAG_FILTER_EXCLUDE_INCLUDE_AND,
+    true
+  )
+
+  /** 互斥模式下右侧"排除"侧是否按"与"过滤（同时带所有选中标签才排除），否则按"或" */
+  var tagFilterExcludeExcludeAnd by PrefsDelegate(
+    sp,
+    PrefKeys.Setting.TAG_FILTER_EXCLUDE_EXCLUDE_AND,
+    true
+  )
+
+  /** 标签弹窗是否使用智能排序（最近使用时间 + 使用次数），默认关闭（按创建时间固定排列） */
+  var tagSmartSort by PrefsDelegate(sp, PrefKeys.Setting.TAG_SMART_SORT, false)
+
+  /** 固定位置排序时是否按标签创建时间倒序（新创建的在前），默认正序 */
+  var tagCreatedDesc by PrefsDelegate(sp, PrefKeys.Setting.TAG_CREATED_DESC, false)
 
   /** 数据分析：一天的分界点小时（默认 5 点，凌晨 5 点前算前一天） */
   var statsDayStartHour by PrefsDelegate(sp, PrefKeys.Setting.STATS_DAY_START_HOUR, 5)
@@ -221,6 +319,11 @@ class SettingPrefs @Inject constructor(
 
   companion object {
 
+    // 数据分析：列表模块显示行数的默认值与取值范围（未修改过的模块一律为默认 10）
+    const val DEFAULT_ANALYSIS_LIST_ROWS = 10
+    const val MIN_ANALYSIS_LIST_ROWS = 5
+    const val MAX_ANALYSIS_LIST_ROWS = 100
+
     // 播放界面底部
     const val BOTTOM_SHOW_NEXT = 0
     const val BOTTOM_SHOW_VOLUME = 1
@@ -296,6 +399,21 @@ class SettingPrefs @Inject constructor(
       return snapped.coerceIn(REPLAY_GAIN_GAIN_MIN_DB, REPLAY_GAIN_GAIN_MAX_DB)
     }
   }
+}
+
+fun SettingPrefs.tagSortFlow(): Flow<TagSortSetting> {
+  return callbackFlow {
+    trySend(TagSortSetting(tagSmartSort, tagCreatedDesc))
+    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+      if (key == PrefKeys.Setting.TAG_SMART_SORT || key == PrefKeys.Setting.TAG_CREATED_DESC) {
+        trySend(TagSortSetting(tagSmartSort, tagCreatedDesc))
+      }
+    }
+    sp.registerOnSharedPreferenceChangeListener(listener)
+    awaitClose {
+      sp.unregisterOnSharedPreferenceChangeListener(listener)
+    }
+  }.distinctUntilChanged()
 }
 
 fun SettingPrefs.playlistSortOrderFlow(): Flow<String> {

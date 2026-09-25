@@ -55,8 +55,14 @@ fun ScreenPopupButton(library: Library?, vm: LibraryViewModel = libraryViewModel
     )
   }
 
-  val sortOrderItems = library.menuItems
-  val sortOrders = library.sortOrders
+  val (sortOrderItems, sortOrders) = if (library.tag == Library.TAG_SONG) {
+    // 仅歌曲列表支持自定义可显示的排序规则，按设置过滤
+    library.menuItems.zip(library.sortOrders)
+      .filter { (_, order) -> settingState.library.songSortRules.contains(order) }
+      .unzip()
+  } else {
+    library.menuItems to library.sortOrders
+  }
   val sortOrder = when (library.tag) {
     Library.TAG_SONG -> settingState.library.songSortOrder
     Library.TAG_ALBUM -> settingState.library.albumSortOrder
@@ -67,9 +73,6 @@ fun ScreenPopupButton(library: Library?, vm: LibraryViewModel = libraryViewModel
     else -> throw RuntimeException("unknown tag: ${library.tag}")
   }
   val selectedIndex = sortOrders.indexOf(sortOrder)
-  if (selectedIndex < 0) {
-    throw IllegalArgumentException("sortOrder:$sortOrder sortOrders: $sortOrders")
-  }
 
   DropdownMenu(
     modifier = Modifier.wrapContentSize(),

@@ -54,7 +54,9 @@ import remix.myplayer.ui.AppScaffold
 import remix.myplayer.ui.dialog.DialogContainer
 import remix.myplayer.ui.screen.AboutScreen
 import remix.myplayer.ui.screen.CustomSortScreen
+import remix.myplayer.ui.screen.DataAnalysisScreen
 import remix.myplayer.ui.screen.EQScreen
+import remix.myplayer.ui.screen.LanguageSettingsScreen
 import remix.myplayer.ui.screen.LastAddedScreen
 import remix.myplayer.ui.screen.SearchScreen
 import remix.myplayer.ui.screen.SongChooserScreen
@@ -92,6 +94,8 @@ const val RouteCustomCoverCrop = "custom_cover_crop"
 const val RouteTagEditCrop = "tag_edit_crop"
 const val RouteEq = "eq"
 const val RouteSupport = "support"
+const val RouteDataAnalysis = "data_analysis"
+const val RouteLanguage = "language"
 
 // 存在目标页 NavBackStackEntry.savedStateHandle 里的标志，
 // 标记该页是从播放页浮窗跳转过来的，退出时需要恢复浮窗
@@ -156,6 +160,10 @@ fun AppNav() {
 
             normalAnimatedScreen(RouteAbout) {
               AboutScreen()
+            }
+
+            normalAnimatedScreen(RouteLanguage) {
+              LanguageSettingsScreen()
             }
 
             composable<DetailScreenRoute>(
@@ -278,6 +286,10 @@ fun AppNav() {
 
             normalAnimatedScreen(RouteSupport) {
               SupportScreen()
+            }
+
+            normalAnimatedScreen(RouteDataAnalysis) {
+              DataAnalysisScreen()
             }
           }
         }

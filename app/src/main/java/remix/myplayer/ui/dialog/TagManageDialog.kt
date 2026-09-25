@@ -41,7 +41,8 @@ data class TagManageState(
 fun TagManageDialog() {
   val libraryVM = libraryViewModel
   val state by libraryVM.tagManageState.collectAsStateWithLifecycle()
-  val allTags by libraryVM.allTags.collectAsStateWithLifecycle()
+  // 按设置的排序方式（智能排序 / 按创建时间固定位置）排列后的标签
+  val tags by libraryVM.orderedTags.collectAsStateWithLifecycle()
   val theme = LocalTheme.current
 
   // 新建/重命名输入
@@ -86,12 +87,12 @@ fun TagManageDialog() {
         )
       }
 
-      if (allTags.isEmpty()) {
+      if (tags.isEmpty()) {
         TextSecondary(stringResource(R.string.no_tag), fontSize = 14.sp)
       } else {
         // 标签较多时可滚动，避免超出弹窗显示范围
         LazyColumn(modifier = Modifier.weight(1f, false)) {
-          items(allTags.toList()) { tag ->
+          items(tags) { tag ->
             Row(
               modifier = Modifier
                 .fillMaxWidth()

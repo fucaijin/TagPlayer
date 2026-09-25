@@ -85,6 +85,15 @@ class ExoPlayback(
   override var isPrepared: Boolean = false
     private set
 
+  /**
+   * 下一次 prepare 完成后是否允许自动开始播放。
+   *
+   * prepare() 是异步的：调用 [setPlaylist] 后要等到 STATE_READY 才回调 onPrepare，
+   * 因此必须把"本次 prepare 是否允许自动播放"记录下来，否则回调里无法区分是
+   * 用户主动播放还是队列重建。
+   */
+  private var autoStartOnPrepare = true
+
   override val audioSessionId: Int
     get() = player.audioSessionId
 
@@ -124,7 +133,9 @@ class ExoPlayback(
             Player.STATE_READY -> {
               if (!isPrepared) {
                 isPrepared = true
-                callback?.onPrepare()
+                val autoStart = autoStartOnPrepare
+                autoStartOnPrepare = true
+                callback?.onPrepare(autoStart)
               }
             }
 
@@ -211,13 +222,26 @@ class ExoPlayback(
     }
   }
 
-  override fun setPlaylist(songs: List<Song>, index: Int, offset: Long) {
+  override fun setPlaylist(
+    songs: List<Song>,
+    index: Int,
+    offset: Long,
+    restorePlaybackState: Boolean,
+  ) {
     checkMainThread()
     isPrepared = false
+
+    // 重建播放队列时必须保留原先的播放/暂停状态。
+    // 否则打标签后 reconcilePlayQueue 重新 prepare 会让已暂停的歌曲被重新播放。
+    val wasPlaying = player.playWhenReady
+    autoStartOnPrepare = !restorePlaybackState
+    Timber.tag(TAG)
+      .v("setPlaylist, size: ${songs.size} index: $index offset: $offset wasPlaying: $wasPlaying restorePlaybackState: $restorePlaybackState")
 
     val sources = songs.map { buildSource(it) }
     player.setMediaSources(sources, index, offset)
     player.prepare()
+    player.playWhenReady = wasPlaying
   }
 
   // 从Timeline获取当前播放列表

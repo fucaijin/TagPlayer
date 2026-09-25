@@ -28,6 +28,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import remix.myplayer.App
 import remix.myplayer.R
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.data.model.audio.Song.Companion.EMPTY_SONG
@@ -41,7 +42,7 @@ import remix.myplayer.data.prefs.SettingPrefs.Companion.MODE_REPEAT
 import remix.myplayer.data.prefs.SettingPrefs.Companion.MODE_SHUFFLE
 import remix.myplayer.data.prefs.SettingPrefs.Companion.OPEN_SOFTWARE
 import remix.myplayer.helper.EQHelper
-import remix.myplayer.helper.LanguageHelper
+import remix.myplayer.i18n.LocaleManager
 import remix.myplayer.helper.PlayEventTracker
 import remix.myplayer.helper.ShakeDetector
 import remix.myplayer.helper.SleepTimer
@@ -288,7 +289,7 @@ class MusicService : BaseService(),
   }
 
   override fun attachBaseContext(base: Context) {
-    super.attachBaseContext(LanguageHelper.setLocal(base))
+    super.attachBaseContext(LocaleManager.applyLocale(base, LocaleManager.activeTag(base)))
   }
 
   override fun onCreate() {
@@ -566,6 +567,8 @@ class MusicService : BaseService(),
   override fun onIsPlayingChanged(isPlaying: Boolean) {
     Timber.v("onIsPlayingChanged: $isPlaying")
     stateSource.updatePlaybackUiState(isPlaying = isPlaying)
+    // 数据分析：将会话边界与播放状态绑定（后台听歌也算使用会话）
+    (application as? App)?.appUsageTracker?.setMusicPlaying(isPlaying)
     if (isPlaying) {
       updatePlayHistory()
     } else {
@@ -579,11 +582,17 @@ class MusicService : BaseService(),
     EQHelper.updateAudioSession(this, audioSessionId)
   }
 
-  override fun onPrepare() {
-    Timber.v("onPrepare, firstPrepared: $firstPrepared")
+  override fun onPrepare(autoStart: Boolean) {
+    Timber.v("onPrepare, firstPrepared: $firstPrepared, autoStart: $autoStart")
     EQHelper.updateAudioSession(this, playback.audioSessionId)
 
     pushPlaybackUiState()
+
+    if (!autoStart) {
+      // 队列重建（打标签、标签过滤等）触发的 prepare：保持重建前的播放/暂停状态，不能自动恢复播放
+      Timber.v("队列重建完成，保持原有播放状态")
+      return
+    }
 
     if (firstPrepared) {
       firstPrepared = false
@@ -801,8 +810,14 @@ class MusicService : BaseService(),
       return
     }
 
-    // 以当前歌曲为起点重建队列，并保留当前播放进度
-    playback.setPlaylist(newQueue, index, playback.position)
+    // 以当前歌曲为起点重建队列，并保留当前播放进度与播放/暂停状态
+    Timber.v("setPlayQueueKeepCurrent, size: ${newQueue.size} index: $index")
+    playback.setPlaylist(
+      songs = newQueue,
+      index = index,
+      offset = playback.position,
+      restorePlaybackState = true,
+    )
     updateMediaSessionQueue()
     launch { playQueueStore.save(newQueue) }
   }
@@ -838,12 +853,16 @@ class MusicService : BaseService(),
     val newIndex = currentPath?.let { path ->
       reconciled.indexOfFirst { it.data == path }
     } ?: -1
-    if (newIndex == -1) {
-      // 当前歌曲在新列表中不存在（文件可能已被删除），仅替换队列但不改变播放位置
-      playback.setPlaylist(reconciled)
-    } else {
-      playback.setPlaylist(reconciled, newIndex, playback.position)
-    }
+    val index = if (newIndex == -1) playback.currentIndex.coerceAtLeast(0) else newIndex
+    Timber.v("reconcilePlayQueue, size: ${reconciled.size} index: $index position: ${playback.position}")
+
+    // 队列重建不能改变当前歌曲的播放/暂停状态
+    playback.setPlaylist(
+      songs = reconciled,
+      index = index,
+      offset = playback.position,
+      restorePlaybackState = true,
+    )
     updateMediaSessionQueue()
     launch { playQueueStore.save(reconciled) }
     pushPlaybackUiState()

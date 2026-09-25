@@ -27,6 +27,8 @@ fun DialogContainer() {
 
   BatchTagDialog()
 
+  BatchRenameDialog()
+
   TagErrorDialog()
 
   ConvertDialog()

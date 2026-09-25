@@ -35,6 +35,7 @@ import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import remix.myplayer.R
+import java.io.File
 import remix.myplayer.service.Command
 import remix.myplayer.service.MusicService
 import remix.myplayer.service.MusicService.Companion.EXTRA_COMMAND
@@ -45,8 +46,10 @@ import remix.myplayer.util.Util
 import remix.myplayer.util.ext.clickableWithoutRipple
 import remix.myplayer.viewmodel.PlaybackViewModel
 import remix.myplayer.viewmodel.PlayingScreenValue
+import remix.myplayer.viewmodel.libraryViewModel
 import remix.myplayer.viewmodel.mainViewModel
 import remix.myplayer.viewmodel.playbackViewModel
+import remix.myplayer.viewmodel.settingViewModel
 import kotlin.math.absoluteValue
 
 private const val triggerThreshold = 10
@@ -56,6 +59,8 @@ fun BottomBar(modifier: Modifier = Modifier, vm: PlaybackViewModel = playbackVie
   val mainVM = mainViewModel
   val scope = rememberCoroutineScope()
   val playbackState by vm.playbackUiState.collectAsStateWithLifecycle()
+  val settingState by settingViewModel.settingsState.collectAsStateWithLifecycle()
+  val songTags by libraryViewModel.songTags.collectAsStateWithLifecycle()
   val interactionSource = remember { MutableInteractionSource() }
 
   var hasTriggerAct by remember { mutableStateOf(false) }
@@ -123,9 +128,27 @@ fun BottomBar(modifier: Modifier = Modifier, vm: PlaybackViewModel = playbackVie
         .fillMaxHeight()
         .padding(horizontal = 8.dp)
     ) {
-      TextPrimary(playbackState.song.title, fontSize = 16.sp)
-      Spacer(modifier = Modifier.height(2.dp))
-      TextSecondary(text = playbackState.song.artist, fontSize = 14.sp)
+      val song = playbackState.song
+      val bottomTitle = if (settingState.common.useFilenameInBottomBar) {
+        File(song.data).nameWithoutExtension
+      } else {
+        song.title
+      }
+      TextPrimary(bottomTitle, fontSize = 16.sp)
+      if (settingState.list.bottomBarShowArtistAlbum && song.artistAlbum.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(2.dp))
+        TextSecondary(text = song.artistAlbum, fontSize = 14.sp)
+      }
+      if (settingState.list.bottomBarShowTag) {
+        val tags = songTags[song.data].orEmpty()
+        if (tags.isNotEmpty()) {
+          Spacer(modifier = Modifier.height(2.dp))
+          TextSecondary(
+            tags.joinToString(" ") { "#$it" },
+            fontSize = 12.sp
+          )
+        }
+      }
     }
 
     Row(

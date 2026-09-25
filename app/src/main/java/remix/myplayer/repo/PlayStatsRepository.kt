@@ -5,12 +5,16 @@ import remix.myplayer.data.db.room.entity.AppOpenSession
 import remix.myplayer.data.db.room.entity.PlayEvent
 import remix.myplayer.data.db.room.entity.PlayHourStat
 import remix.myplayer.data.prefs.SettingPrefs
+import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** 应用会话合并间隔：小于该间隔的相邻会话（如熄屏导致的短会话）合并为一次 */
+private const val MERGE_GAP_MS = 2 * 60_000L
 
 /** 歌曲维度统计 */
 data class SongPlayStat(
@@ -165,44 +169,82 @@ class PlayStatsRepository @Inject constructor(
       .sortedWith(statComparator(ascending) { it.totalPlayedMs })
       .take(limit)
 
-  /** 跳过排行（未播放到 80% 就切歌） */
+  /**
+   * 跳过排行（未播放到 80% 就切歌）；[byRate]=true 时按跳过率排序，否则按跳过次数。
+   * 主字段相同的歌曲，再用另一个字段（跳过率 <-> 跳过次数）按相同方向排序，
+   * 即倒序时"跳过率相同按跳过次数倒序"，升序同理；仍相同则按歌名兜底。
+   */
   fun skippedRanking(
     events: List<PlayEvent>,
     ascending: Boolean = false,
+    byRate: Boolean = false,
     limit: Int = 50,
-  ): List<SongPlayStat> =
-    groupSongs(events)
+  ): List<SongPlayStat> {
+    val rateKey: (SongPlayStat) -> Long = { (it.skipRate * 100f).roundToInt().toLong() }
+    val countKey: (SongPlayStat) -> Long = { it.skippedCount.toLong() }
+    // 主排序字段与次级字段保持一致的方向
+    val comparator = if (ascending) {
+      compareBy(if (byRate) rateKey else countKey)
+        .thenBy(if (byRate) countKey else rateKey)
+    } else {
+      compareByDescending(if (byRate) rateKey else countKey)
+        .thenByDescending(if (byRate) countKey else rateKey)
+    }.thenBy { it.title }
+    return groupSongs(events)
       .filter { it.skippedCount > 0 }
-      .sortedWith(statComparator(ascending) { it.skippedCount.toLong() })
+      .sortedWith(comparator)
       .take(limit)
+  }
 
   /** 每日播放时长（按分界点小时归入某一天；跨小时/跨天的会话已按小时拆分） */
   fun dailyPlayDurations(hourStats: List<PlayHourStat>): List<DayPlayStat> {
     val hour = dayStartHour
-    return hourStats.groupBy { StatsTimeUtil.dayBucket(it.hourStart, hour) }
-      .map { (bucket, list) ->
-        DayPlayStat(
-          dayBucket = bucket,
-          playedMs = list.sumOf { it.playedMs }
-        )
-      }
-      .sortedByDescending { it.dayBucket }
+    val byBucket = hourStats.groupBy { StatsTimeUtil.dayBucket(it.hourStart, hour) }
+      .mapValues { (_, list) -> list.sumOf { it.playedMs } }
+    if (byBucket.isEmpty()) return emptyList()
+    // 填充已有数据区间内的缺口天（没听的那天记为 0），避免时间线断档、某天"凭空消失"
+    val minBucket = byBucket.keys.min()
+    val maxBucket = byBucket.keys.max()
+    return (minBucket..maxBucket).map { bucket ->
+      DayPlayStat(dayBucket = bucket, playedMs = byBucket[bucket] ?: 0L)
+    }.sortedByDescending { it.dayBucket }
   }
 
   /** 每天最早/最晚听歌（按分界点小时归入某一天） */
   fun dailyActiveTimes(events: List<PlayEvent>): List<DayPlayStat> {
     val hour = dayStartHour
-    return events.groupBy { StatsTimeUtil.dayBucket(it.lastActiveTime, hour) }
-      .map { (bucket, list) ->
-        DayPlayStat(
-          dayBucket = bucket,
-          playedMs = list.sumOf { it.playedMs },
-          earliest = list.minOfOrNull { it.startTime },
-          latest = list.maxOfOrNull { it.lastActiveTime }
-        )
+    val dayMs = 24L * 3600_000L
+    val accum = mutableMapOf<Long, ActiveAccum>()
+    for (e in events) {
+      val startBucket = StatsTimeUtil.dayBucket(e.startTime, hour)
+      val endBucket = StatsTimeUtil.dayBucket(e.lastActiveTime, hour)
+      // 跨“一天分界点”的会话要拆到相邻两天：当天只算到次日分界点之前，
+      // 次日从分界点之后算起，避免把前一天 23:44 的会话错误地显示为后一天“最早”。
+      for (b in startBucket..endBucket) {
+        val bucketStart = StatsTimeUtil.bucketStartTime(b, hour)
+        val bucketEnd = bucketStart + dayMs - 1
+        val effStart = maxOf(e.startTime, bucketStart)
+        val effEnd = minOf(e.lastActiveTime, bucketEnd).coerceAtLeast(effStart)
+        val acc = accum.getOrPut(b) { ActiveAccum() }
+        acc.earliest = minOf(acc.earliest ?: effStart, effStart)
+        acc.latest = maxOf(acc.latest ?: effEnd, effEnd)
       }
-      .sortedByDescending { it.dayBucket }
+    }
+    return accum.map { (bucket, acc) ->
+      DayPlayStat(
+        dayBucket = bucket,
+        playedMs = 0,
+        earliest = acc.earliest,
+        latest = acc.latest
+      )
+    }.sortedByDescending { it.dayBucket }
   }
+
+  /** 最早/最晚统计的临时累加器 */
+  private class ActiveAccum(
+    var earliest: Long? = null,
+    var latest: Long? = null,
+  )
 
   /** 时段热力图：7(周一~周日) x 24 小时，值为播放时长(ms) */
   fun hourHeatmap(hourStats: List<PlayHourStat>): List<List<Long>> {
@@ -304,13 +346,27 @@ class PlayStatsRepository @Inject constructor(
     if (sessions.isEmpty()) {
       return AppUsageStat(0, null, null, 0)
     }
-    val sorted = sessions.sortedBy { it.openTime }
     val now = System.currentTimeMillis()
-    val durations = sorted.map { session ->
-      val close = if (session.closeTime > 0) session.closeTime else now
-      (close - session.openTime).coerceAtLeast(0)
+    // 听歌时熄屏会让 Activity 频繁 stop，从而记录大量约 1 分钟的“会话”，
+    // 把间隔过近（<=MERGE_GAP_MS）的相邻会话合并，否则平均使用时长会被拉成 ~1min。
+    val sorted = sessions.sortedBy { it.openTime }
+    val merged = mutableListOf<AppOpenSession>()
+    var cur: AppOpenSession? = null
+    for (s in sorted) {
+      val close = if (s.closeTime > 0) s.closeTime else now
+      cur = if (cur == null) {
+        s.copy(closeTime = close)
+      } else if (s.openTime - cur.closeTime <= MERGE_GAP_MS) {
+        cur.copy(closeTime = maxOf(cur.closeTime, close))
+      } else {
+        merged += cur
+        s.copy(closeTime = close)
+      }
     }
-    val intervals = sorted.zipWithNext { a, b -> b.openTime - a.openTime }
+    if (cur != null) merged += cur
+
+    val durations = merged.map { (it.closeTime - it.openTime).coerceAtLeast(0) }
+    val intervals = merged.zipWithNext { a, b -> b.openTime - a.openTime }
     return AppUsageStat(
       openCount = sorted.size,
       avgIntervalMs = intervals.takeIf { it.isNotEmpty() }?.average()?.toLong(),
@@ -399,6 +455,12 @@ object StatsTimeUtil {
   fun formatDay(bucket: Long, dayStartHour: Int): String {
     val start = bucketStartTime(bucket, dayStartHour)
     return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(start))
+  }
+
+  /** 格式化天序号为 MMdd */
+  fun formatDayMmdd(bucket: Long, dayStartHour: Int): String {
+    val start = bucketStartTime(bucket, dayStartHour)
+    return SimpleDateFormat("MMdd", Locale.getDefault()).format(Date(start))
   }
 
   /** 格式化时间点 HH:mm */

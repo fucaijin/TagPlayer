@@ -191,6 +191,7 @@
   <string name="donate_tip">您的支持，是我們進步的動力。</string>
   <string name="support_donate_note">本頁面的收款渠道均屬於原項目Aplayer，感謝支持！</string>
   <string name="jump_alipay_account">跳轉支付寶</string>
+  <string name="open_alipay">打開支付寶</string>
   <string name="already_copy">已複製到剪貼簿</string>
   <string name="confirm_delete_playlist">是否移除所選播放清單？</string>
   <string name="confirm_delete_from_playlist">是否從播放清單移除？</string>

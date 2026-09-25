@@ -740,6 +740,20 @@ private class WavPcmSource(private val file: File) : PcmSource {
 }
 
 /**
+ * 安全读取 MediaFormat 的整型键。
+ *
+ * 注意：不能直接用 `getInteger(key) ?: default`。
+ * MediaFormat 内部是 `((Integer) map.get(name)).intValue()`（部分版本），
+ * 键不存在时它是在 Java 侧抛 NullPointerException，根本不会返回 null，
+ * Kotlin 的 Elvis 兜不住，这也是之前 mp3/m4a 转换直接崩掉的原因。
+ */
+private fun MediaFormat?.intOrNull(key: String): Int? {
+  val format = this ?: return null
+  if (!format.containsKey(key)) return null
+  return runCatching { format.getInteger(key) }.getOrNull()
+}
+
+/**
  * 其它容器/编码（如裸 ADTS .aac）走 MediaExtractor + MediaCodec 解码为 16bit PCM。
  */
 private class CodecPcmSource(context: Context, file: File) : PcmSource {
@@ -782,11 +796,16 @@ private class CodecPcmSource(context: Context, file: File) : PcmSource {
       codec.start()
 
       val outFormat = runCatching { codec.outputFormat }.getOrNull()
-      sampleRate = outFormat?.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-        ?: trackFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-      channels = outFormat?.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-        ?: trackFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-      pcmEncoding = outFormat?.getInteger(MediaFormat.KEY_PCM_ENCODING)
+      sampleRate = outFormat.intOrNull(MediaFormat.KEY_SAMPLE_RATE)
+        ?: trackFormat.intOrNull(MediaFormat.KEY_SAMPLE_RATE)
+        ?: throw AudioConverter.ConvertException("Unknown sample rate: ${file.name}")
+      channels = outFormat.intOrNull(MediaFormat.KEY_CHANNEL_COUNT)
+        ?: trackFormat.intOrNull(MediaFormat.KEY_CHANNEL_COUNT)
+        ?: throw AudioConverter.ConvertException("Unknown channel count: ${file.name}")
+      if (channels !in 1..2) {
+        throw AudioConverter.ConvertException("Unsupported channel count $channels: ${file.name}")
+      }
+      pcmEncoding = outFormat.intOrNull(MediaFormat.KEY_PCM_ENCODING)
         ?: AudioFormat.ENCODING_PCM_16BIT
 
       val durationUs = if (trackFormat.containsKey(MediaFormat.KEY_DURATION)) {
@@ -829,7 +848,7 @@ private class CodecPcmSource(context: Context, file: File) : PcmSource {
       when (val outIndex = codec.dequeueOutputBuffer(info, TIMEOUT_US)) {
         MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
           val format = codec.outputFormat
-          pcmEncoding = format.getInteger(MediaFormat.KEY_PCM_ENCODING)
+          pcmEncoding = format.intOrNull(MediaFormat.KEY_PCM_ENCODING)
             ?: AudioFormat.ENCODING_PCM_16BIT
         }
 

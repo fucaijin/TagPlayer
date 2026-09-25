@@ -19,7 +19,7 @@ import remix.myplayer.BuildConfig
 import remix.myplayer.R
 import remix.myplayer.helper.AudioTagWriter
 import remix.myplayer.helper.AudioTagWriter.PendingWriteRequest
-import remix.myplayer.helper.LanguageHelper.setLocal
+import remix.myplayer.i18n.LocaleManager
 import remix.myplayer.service.MusicService
 import remix.myplayer.ui.nav.MessageNotifier
 import remix.myplayer.util.PermissionUtil
@@ -166,7 +166,7 @@ open class BaseActivity : ComponentActivity(), CoroutineScope by MainScope() {
   }
 
   override fun attachBaseContext(newBase: Context) {
-    super.attachBaseContext(setLocal(newBase))
+    super.attachBaseContext(LocaleManager.applyLocale(newBase, LocaleManager.activeTag(newBase)))
   }
 
   companion object {

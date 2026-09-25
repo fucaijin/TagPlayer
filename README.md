@@ -7,7 +7,7 @@
 # APlayer - Android Music Player
 
 ## Intro
-- A beautiful and powerful music player built with Jetpack Compose
+APlayer is a beautiful, powerful local music player rebuilt with Jetpack Compose, featuring **super powerful tag-based management with corresponding filtering** and **rich listening analytics**. You can use tags to classify, filter, and exclude songs, keeping your library perfectly organized; on top of standard playback it lets you organize your library with custom tags, understand your habits through rich statistics, and personalize the UI — sort rules, filename display, heatmaps and analysis modules — to fit the way you listen.
 
 ## Download
 [<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png"
@@ -38,9 +38,16 @@ This fork adds **tag-based music management** on top of the original project: ta
 - Batch tagging: multi-select songs, then add to / remove from tags in batch
 - Per-song tag manage: a star button in each list item opens the tag dialog; tags are written to the audio file only when you tap "Save"
 - Play queue sync: the filtered result becomes the playlist; the current song keeps playing when switching tags
+- Data analysis: rich usage statistics and visual reports — play count / play duration / skip rankings, daily listening time, daily earliest & latest listening time, tag song counts, favorite tags, and 7×24h / 24h hour heatmaps, helping you understand your listening habits
 - Settings - Song list: 4 new switches "show tags in list / tag manage button in list / show list number / show artist and album"
 - Bottom bar: added "Previous" button, removed the cover thumbnail control
 - Tag write failure dialog (with copyable error) and log export/clear for troubleshooting
+- Data analysis settings popup: toggle each analysis module (rankings, charts, heatmaps…) on/off, set list rows; heatmap offers single/multi-color scheme and adjustable x-axis time buckets (24/12/8/6)
+- Customizable song list sort rules: choose which sort options appear in the sort menu (at least one is kept)
+- Bottom bar and playing-screen title can display the file name instead of the metadata title
+- Editing a song's metadata (title/artist/album) now refreshes the play-event stats, so rankings show the updated title immediately
+- Tag export/import via the system file picker (JSON backup keyed by file path)
+- Batch rename songs with a template ({title}{artist}{album}{track}{year}); the default rename template and default tags can be configured in Settings, and default tags are pre-selected when a song has none
 
 ## Screenshot
 |   |   |   |   |
@@ -71,6 +78,18 @@ This fork adds **tag-based music management** on top of the original project: ta
 - Lock screen controls and Android media notification
 - Bluetooth/wired headset media buttons
 - Auto scan media library or manual folder scan
+
+## Localization (i18n)
+
+TagPlayer can switch to **any language**, not just the built-in Chinese / English:
+
+- Built-in languages (System / Simplified Chinese / Traditional Chinese / Japanese) can be chosen directly in **Settings → Language**.
+- For any other language (French, Spanish, Korean, …) no rebuild is needed:
+  1. Open **Settings → Language**;
+  2. Tap **Export template** — a dialog shows where the template file is saved (it stays open until you confirm);
+  3. Tap **AI translation prompt** to copy the prompt, send it together with the template to an AI and tell it your target language;
+  4. Import the AI-generated `.json` via **Import template**; the new language then appears in the list and takes effect immediately.
+- The exported template uses English as the source; its keys map 1:1 to the app's strings. Imported translations only override matched strings and fall back to built-in resources for the rest.
 
 ## Thanks
 - [XXPermissions](https://github.com/getActivity/XXPermissions)

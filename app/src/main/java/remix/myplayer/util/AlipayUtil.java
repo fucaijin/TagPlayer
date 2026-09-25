@@ -35,8 +35,20 @@ public class AlipayUtil {
    */
   //568920427@qq.com FKX01752E4HENBODS0YAA6 lin_kin_p@163.com FKX01908X8ECOECIQZIL43
   public static boolean startAlipayClient(Activity activity) {
+    return startAlipayClient(activity, "FKX01752E4HENBODS0YAA6", "lin_kin_p@163.com");
+  }
+
+  /**
+   * 打开转账窗口（可指定支付宝二维码 urlCode 与失败时的备用账号）
+   *
+   * @param activity Parent Activity
+   * @param urlCode 支付宝二维码中的转账码（qr.alipay.com/ 之后部分）
+   * @param fallbackAccount 打开失败（未安装支付宝等）时复制到剪贴板的账号
+   * @return 是否成功调用
+   */
+  public static boolean startAlipayClient(Activity activity, String urlCode, String fallbackAccount) {
     return startIntentUrl(activity,
-        INTENT_URL_FORMAT.replace("{urlCode}", "FKX01752E4HENBODS0YAA6"));
+        INTENT_URL_FORMAT.replace("{urlCode}", urlCode), fallbackAccount);
   }
 
   /**
@@ -47,13 +59,25 @@ public class AlipayUtil {
    * @return 是否成功调用
    */
   public static boolean startIntentUrl(Activity activity, String intentFullUrl) {
+    return startIntentUrl(activity, intentFullUrl, "lin_kin_p@163.com");
+  }
+
+  /**
+   * 打开 Intent Scheme Url
+   *
+   * @param activity Parent Activity
+   * @param intentFullUrl Intent 跳转地址
+   * @param fallbackAccount 打开失败时复制到剪贴板的账号
+   * @return 是否成功调用
+   */
+  public static boolean startIntentUrl(Activity activity, String intentFullUrl, String fallbackAccount) {
     try {
       activity.startActivity(Intent.parseUri(intentFullUrl, Intent.URI_INTENT_SCHEME));
       return true;
     } catch (Exception e) {
       ClipboardManager clipboardManager = (ClipboardManager) activity
           .getSystemService(Context.CLIPBOARD_SERVICE);
-      ClipData clipData = ClipData.newPlainText("text", "lin_kin_p@163.com");
+      ClipData clipData = ClipData.newPlainText("text", fallbackAccount);
       clipboardManager.setPrimaryClip(clipData);
       MessageNotifier.INSTANCE.show(R.string.jump_alipay_error);
       return false;

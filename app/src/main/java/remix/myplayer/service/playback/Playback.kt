@@ -30,8 +30,19 @@ interface Playback {
   /** AudioSessionId */
   val audioSessionId: Int
 
-  /** 设置播放列表 */
-  fun setPlaylist(songs: List<Song>, index: Int = 0, offset: Long = 0)
+  /**
+   * 设置播放列表
+   *
+   * @param restorePlaybackState 为 true 时表示本次只是"重建队列"（如打标签后刷新歌曲 id、
+   *                             标签过滤后重建队列），prepare 完成后不会自动开始播放，
+   *                             而是保持调用前的播放/暂停状态。
+   */
+  fun setPlaylist(
+    songs: List<Song>,
+    index: Int = 0,
+    offset: Long = 0,
+    restorePlaybackState: Boolean = false,
+  )
 
   /** 添加歌曲 (index = -1 表示添加到末尾) */
   fun addSongs(songs: List<Song>, index: Int = -1)
@@ -91,7 +102,13 @@ interface Playback {
 
     fun onIsPlayingChanged(isPlaying: Boolean)
     fun onAudioSessionIdChanged(audioSessionId: Int)
-    fun onPrepare()
+    /**
+     * 准备完成
+     *
+     * @param autoStart 是否应当自动开始播放。为 false 时说明本次 prepare 由队列重建触发，
+     *                  必须保持重建前的播放/暂停状态，不能自动恢复播放。
+     */
+    fun onPrepare(autoStart: Boolean)
     fun onEnded()
     fun onError(error: PlaybackException)
     fun onItemTransition(mediaItem: MediaItem?, reason: Int)

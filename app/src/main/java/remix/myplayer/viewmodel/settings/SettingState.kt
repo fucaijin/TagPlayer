@@ -16,6 +16,10 @@ data class CommonSettings(
   val uiFontScale: Float,
   val shake: Boolean,
   val showDisplayName: Boolean,
+  /** 歌曲列表底部栏的歌名是否使用文件名（而非元数据歌名） */
+  val useFilenameInBottomBar: Boolean,
+  /** 播放页顶部标题是否使用文件名（而非元数据歌名） */
+  val useFilenameInPlayingTitle: Boolean,
 )
 
 @Stable
@@ -62,6 +66,8 @@ data class LibrarySettings(
   val artistMode: Int,
   val genreMode: Int,
   val playlistMode: Int,
+  /** 歌曲列表排序菜单中可显示的排序规则集合（至少保留 1 项） */
+  val songSortRules: Set<String>,
 )
 
 @Stable
@@ -99,6 +105,8 @@ data class NotificationSettings(
 data class ListSettings(
   /** 列表条目标签显示 */
   val showTag: Boolean,
+  /** 批量重命名默认模板（占位符：{title}{artist}{album}{track}{year}） */
+  val defaultRenameTemplate: String = "{artist} - {title}",
   /** 列表条目标签管理（五角星按钮） */
   val tagManage: Boolean,
   /** 是否显示"音乐标签编辑"入口（列表条目菜单/播放页菜单） */
@@ -107,6 +115,22 @@ data class ListSettings(
   val showNumber: Boolean,
   /** 显示艺术家-专辑名 */
   val showArtistAlbum: Boolean,
+  /** 歌曲列表底部栏的歌名下方是否显示该歌曲的标签 */
+  val bottomBarShowTag: Boolean,
+  /** 播放页标题的歌名下方是否显示该歌曲的标签 */
+  val playingTitleShowTag: Boolean,
+  /** 歌曲列表底部栏的歌名下方是否显示艺术家-专辑名 */
+  val bottomBarShowArtistAlbum: Boolean,
+  /** 播放页标题的歌名下方是否显示艺术家-专辑名 */
+  val playingTitleShowArtistAlbum: Boolean,
+)
+
+@Stable
+data class TagSettings(
+  /** 标签弹窗是否智能排序（最近使用时间 + 使用次数），否则按创建时间固定排列 */
+  val smartSort: Boolean,
+  /** 固定位置排序时是否按标签创建时间倒序（新创建的在前） */
+  val createdDesc: Boolean,
 )
 
 @Stable
@@ -132,6 +156,7 @@ data class SettingsState(
   val lyric: LyricSettings,
   val notification: NotificationSettings,
   val list: ListSettings,
+  val tag: TagSettings,
   val analysis: AnalysisSettings,
   val other: OtherSettings,
 )

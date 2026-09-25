@@ -19,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -72,6 +73,9 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
   var filterMode by remember {
     mutableStateOf(TagFilterMode.fromName(settingVM.settingPrefs.tagFilterMode))
   }
+  // 互斥模式下左右两侧的"与/或"开关（按"与"=同时带所有选中标签；否则=带任意一个）
+  var filterIncludeAnd by remember { mutableStateOf(settingVM.settingPrefs.tagFilterExcludeIncludeAnd) }
+  var filterExcludeAnd by remember { mutableStateOf(settingVM.settingPrefs.tagFilterExcludeExcludeAnd) }
   var filterSearchQuery by rememberSaveable { mutableStateOf("") }
   var includedFilterTags by remember { mutableStateOf(emptySet<String>()) }
   var excludedFilterTags by remember { mutableStateOf(emptySet<String>()) }
@@ -81,7 +85,10 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
 
   // 根据过滤模式与所选标签过滤歌曲
   val filteredSongs =
-    remember(songs, songTags, includedFilterTags, excludedFilterTags, filterMode, noTagLabel) {
+    remember(
+      songs, songTags, includedFilterTags, excludedFilterTags,
+      filterMode, filterIncludeAnd, filterExcludeAnd, noTagLabel
+    ) {
       if (includedFilterTags.isEmpty() && excludedFilterTags.isEmpty()) {
         songs
       } else {
@@ -91,7 +98,9 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
             includedFilterTags,
             excludedFilterTags,
             filterMode,
-            noTagLabel
+            noTagLabel,
+            filterIncludeAnd,
+            filterExcludeAnd
           )
         }
       }
@@ -100,7 +109,7 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
   // 标签过滤变化后，将过滤结果同步为播放队列（保持当前歌曲不中断播放），
   // 这样后续的下一首/顺序/随机/单曲循环都以过滤后的列表为播放列表。
   var lastFilter by remember { mutableStateOf<Pair<Set<String>, Set<String>>?>(null) }
-  LaunchedEffect(includedFilterTags, excludedFilterTags, filterMode) {
+  LaunchedEffect(includedFilterTags, excludedFilterTags, filterMode, filterIncludeAnd, filterExcludeAnd) {
     val currentFilter = includedFilterTags to excludedFilterTags
     val previous = lastFilter
     lastFilter = currentFilter
@@ -119,9 +128,13 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
     }
   }
 
+  // 用 rememberUpdatedState 持有最新值，避免闭包捕获到初次组合时的陈旧 filteredSongs / playbackState
+  // （否则过滤后列表已变，却仍按初次完整列表算 index，导致双击顶部跳到错误歌曲）。
+  val currentFilteredSongs by rememberUpdatedState(filteredSongs)
+  val currentPlaybackSong by rememberUpdatedState(playbackState.song)
   LaunchedEffect(scrollToCurrentEvent) {
     scrollToCurrentEvent?.collect {
-      val index = libraryVM.songs.value.indexOfFirst { it.id == playbackState.song.id }
+      val index = currentFilteredSongs.indexOfFirst { it.id == currentPlaybackSong.id }
       if (index != -1) {
         listState.scrollToItem(index)
       }
@@ -195,6 +208,16 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
         mode = filterMode,
         includedTags = includedFilterTags,
         excludedTags = excludedFilterTags,
+        includeAnd = filterIncludeAnd,
+        excludeAnd = filterExcludeAnd,
+        onIncludeAndChange = { value ->
+          filterIncludeAnd = value
+          settingVM.settingPrefs.tagFilterExcludeIncludeAnd = value
+        },
+        onExcludeAndChange = { value ->
+          filterExcludeAnd = value
+          settingVM.settingPrefs.tagFilterExcludeExcludeAnd = value
+        },
         searchQuery = filterSearchQuery,
         onSearchQueryChange = { filterSearchQuery = it },
         onModeChange = { mode ->
@@ -302,6 +325,8 @@ private fun matchesTagFilter(
   excluded: Set<String>,
   mode: TagFilterMode,
   noTagLabel: String,
+  includeAnd: Boolean = true,
+  excludeAnd: Boolean = true,
 ): Boolean {
   val noTagIncluded = noTagLabel in included
   val noTagExcluded = noTagLabel in excluded
@@ -311,7 +336,11 @@ private fun matchesTagFilter(
 
   // 排除侧（仅互斥模式生效）
   if (mode.isExclusive) {
-    if (excludeTags.any { it in songTags }) return false
+    if (excludeTags.isNotEmpty()) {
+      val hit = if (excludeAnd) excludeTags.all { it in songTags }
+      else excludeTags.any { it in songTags }
+      if (hit) return false
+    }
     if (noTagExcluded && noTags) return false
   }
 
@@ -324,14 +353,18 @@ private fun matchesTagFilter(
       else -> songTags == includeTags
     }
 
-    TagFilterMode.INCLUDE_OR, TagFilterMode.EXCLUDE_OR -> when {
+    TagFilterMode.INCLUDE_OR -> when {
       !noTagIncluded -> includeTags.any { it in songTags }
       includeTags.isEmpty() -> noTags
       else -> noTags || includeTags.any { it in songTags }
     }
 
+    // 包含与 / 互斥：是否"同时带所有选中标签"由 includeAnd 决定
     else -> when {
-      !noTagIncluded -> includeTags.all { it in songTags }
+      !noTagIncluded -> {
+        if (includeAnd) includeTags.all { it in songTags }
+        else includeTags.any { it in songTags }
+      }
       includeTags.isEmpty() -> noTags
       // "无标签"与"含其它标签"互斥，因此无结果
       else -> false

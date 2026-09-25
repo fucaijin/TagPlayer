@@ -44,4 +44,18 @@ abstract class PlayEventDao {
 
   @Query("SELECT COUNT(*) FROM PlayEvent")
   abstract suspend fun count(): Int
+
+  /**
+   * 元数据（歌名/歌手/专辑）变更后，按文件路径同步更新历史播放事件的展示信息，
+   * 使数据分析的播放次数/时长/跳过/标签播放排行沿用最新歌名。
+   */
+  @Query(
+    "UPDATE PlayEvent SET title = :title, artist = :artist, album = :album WHERE path = :path"
+  )
+  abstract suspend fun updateMetaByPath(
+    path: String,
+    title: String,
+    artist: String,
+    album: String
+  )
 }
