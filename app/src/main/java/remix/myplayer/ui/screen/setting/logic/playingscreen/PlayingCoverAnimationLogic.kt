@@ -51,6 +51,7 @@ import remix.myplayer.ui.screen.playing.sliceStaggerModifier
 import remix.myplayer.ui.screen.playing.snapCoverAnimationSpeed
 import remix.myplayer.ui.screen.setting.NormalPreference
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.radioButtonColors
 import remix.myplayer.ui.widget.common.LineSlider
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
@@ -211,6 +212,7 @@ private fun CoverAnimationItem(
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
       RadioButton(
         modifier = Modifier.padding(end = 8.dp),
+        colors = LocalTheme.current.radioButtonColors(),
         selected = selected,
         onClick = onClick
       )

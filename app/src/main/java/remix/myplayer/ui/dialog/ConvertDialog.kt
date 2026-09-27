@@ -22,6 +22,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import remix.myplayer.R
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.helper.ConvertFormat
+import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.radioButtonColors
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
 import remix.myplayer.viewmodel.libraryViewModel
@@ -109,6 +111,7 @@ fun ConvertDialog() {
             verticalAlignment = Alignment.CenterVertically
           ) {
             RadioButton(
+              colors = LocalTheme.current.radioButtonColors(),
               selected = state.format == item,
               onClick = { libraryVM.selectConvertFormat(item) }
             )

@@ -1,4 +1,4 @@
-package remix.myplayer.ui.screen.setting.logic.list
+package remix.myplayer.ui.screen.setting.logic.playingscreen
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -9,15 +9,15 @@ import remix.myplayer.ui.screen.setting.SwitchPreference
 import remix.myplayer.viewmodel.settingViewModel
 
 @Composable
-fun ListPlayingTitleTagLogic() {
+fun PlayingTitleArtistAlbumLogic() {
   val settingVM = settingViewModel
   val settingState by settingVM.settingsState.collectAsStateWithLifecycle()
 
   SwitchPreference(
-    stringResource(R.string.playing_title_show_tag),
-    stringResource(R.string.playing_title_show_tag_tip),
-    settingState.list.playingTitleShowTag
+    stringResource(R.string.playing_title_show_artist_album),
+    stringResource(R.string.playing_title_show_artist_album_tip),
+    settingState.playingScreen.playingTitleShowArtistAlbum
   ) {
-    settingVM.setPlayingTitleShowTag(it)
+    settingVM.setPlayingTitleShowArtistAlbum(it)
   }
 }

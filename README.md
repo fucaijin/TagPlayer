@@ -43,8 +43,8 @@ This fork adds **tag-based music management** on top of the original project: ta
 - Customizable song list sort rules: choose which sort options appear in the sort menu (at least one is kept)
 - Bottom bar and playing-screen title can display the file name instead of the metadata title
 - Editing a song's metadata (title/artist/album) now refreshes the play-event stats, so rankings show the updated title immediately
-- Tag export/import via the system file picker (JSON backup keyed by file path)
-- Batch rename songs with a template ({title}{artist}{album}{track}{year}); the default rename template and default tags can be configured in Settings, and default tags are pre-selected when a song has none
+- Tag export/import via the system file picker (JSON backup): two export modes — "filename - tags" and "metadata - tags" (metadata mode matches Title + Artist by default, with optional Album / Genre); import auto-matches using the mode recorded in the file, then shows a result list (succeeded / failed / unmatched) that can be copied with one tap
+- Batch modify: after multi-selecting songs, one dialog switches between four modes — rename by metadata ({Artist}-{Title} placeholders, extension kept), set tags by filename (extraction rule with regex support), manual rename (copyable original name, clearable/editable new name), and manual metadata (pick the columns, then edit cell by cell); saving shows a cancellable progress bar, the original info is recorded beforehand, and file operations can be undone afterwards
 
 ## Aplayer Screenshot
 |   |   |   |   |

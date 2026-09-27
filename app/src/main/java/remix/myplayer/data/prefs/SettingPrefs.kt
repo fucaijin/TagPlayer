@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import remix.myplayer.data.model.misc.TagFilterMode
+import remix.myplayer.data.model.misc.TagFixedSortMode
 import remix.myplayer.data.model.misc.TagSortSetting
 import remix.myplayer.helper.LanguageHelper.AUTO
 import remix.myplayer.helper.SortOrder
@@ -122,9 +123,6 @@ class SettingPrefs @Inject constructor(
   )
   var playAtBreakPoint by PrefsDelegate(sp, PrefKeys.Setting.PLAY_AT_BREAKPOINT, false)
   var shake by PrefsDelegate(sp, PrefKeys.Setting.SHAKE, false)
-  var showDisplayName by PrefsDelegate(sp, PrefKeys.Setting.SHOW_DISPLAYNAME, false)
-  var bottomBarUseFilename by PrefsDelegate(sp, PrefKeys.Setting.BOTTOM_BAR_USE_FILENAME, false)
-  var playingTitleUseFilename by PrefsDelegate(sp, PrefKeys.Setting.PLAYING_TITLE_USE_FILENAME, false)
 
   /** 歌曲列表排序菜单中可显示的排序规则集合（至少保留 1 项），默认全部显示 */
   var songSortRules by PrefsDelegate(
@@ -174,13 +172,6 @@ class SettingPrefs @Inject constructor(
   /** 热力图横坐标显示的时间个数（24/12/8/6，默认 24；格子始终 24 个） */
   var heatmapTimeLabels by PrefsDelegate(sp, PrefKeys.Setting.HEATMAP_TIME_LABELS, 24)
 
-  /** 批量重命名默认模板（占位符：{title}{artist}{album}{track}{year}），打开弹窗时预填 */
-  var defaultRenameTemplate by PrefsDelegate(
-    sp,
-    PrefKeys.Setting.DEFAULT_RENAME_TEMPLATE,
-    "{artist} - {title}"
-  )
-
   // 歌曲列表相关开关
   var listShowTag by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_TAG, true)
   var listTagManage by PrefsDelegate(sp, PrefKeys.Setting.LIST_TAG_MANAGE, true)
@@ -188,8 +179,17 @@ class SettingPrefs @Inject constructor(
   var listShowNumber by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_NUMBER, true)
   var listShowArtistAlbum by PrefsDelegate(sp, PrefKeys.Setting.LIST_SHOW_ARTIST_ALBUM, true)
 
+  /** 歌曲列表条目的歌名是否显示文件名（而非元数据歌名） */
+  var showDisplayName by PrefsDelegate(sp, PrefKeys.Setting.SHOW_DISPLAYNAME, false)
+
+  /** 歌曲列表底部栏的歌名是否显示文件名（而非元数据歌名） */
+  var bottomBarUseFilename by PrefsDelegate(sp, PrefKeys.Setting.BOTTOM_BAR_USE_FILENAME, false)
+
   /** 歌曲列表底部栏的歌名下方是否显示该歌曲的标签 */
   var bottomBarShowTag by PrefsDelegate(sp, PrefKeys.Setting.BOTTOM_BAR_SHOW_TAG, true)
+
+  /** 播放页顶部标题是否显示文件名（而非元数据歌名） */
+  var playingTitleUseFilename by PrefsDelegate(sp, PrefKeys.Setting.PLAYING_TITLE_USE_FILENAME, false)
 
   /** 播放页标题的歌名下方是否显示该歌曲的标签 */
   var playingTitleShowTag by PrefsDelegate(sp, PrefKeys.Setting.PLAYING_TITLE_SHOW_TAG, true)
@@ -232,8 +232,36 @@ class SettingPrefs @Inject constructor(
   /** 标签弹窗是否使用智能排序（最近使用时间 + 使用次数），默认关闭（按创建时间固定排列） */
   var tagSmartSort by PrefsDelegate(sp, PrefKeys.Setting.TAG_SMART_SORT, false)
 
-  /** 固定位置排序时是否按标签创建时间倒序（新创建的在前），默认正序 */
-  var tagCreatedDesc by PrefsDelegate(sp, PrefKeys.Setting.TAG_CREATED_DESC, false)
+  /**
+   * 固定位置排序模式：0 创建时间正序 / 1 创建时间倒序 / 2 标签首字母，默认 0。
+   * 兼容旧版只存了"是否倒序"布尔（[PrefKeys.Setting.TAG_CREATED_DESC]）的情况：
+   * 首次读取时自动迁移并清理旧键。
+   */
+  var tagFixedSortMode: Int
+    get() {
+      val newKey = PrefKeys.Setting.TAG_FIXED_SORT_MODE
+      if (!sp.contains(newKey)) {
+        val mode = if (sp.contains(PrefKeys.Setting.TAG_CREATED_DESC)
+          && sp.getBoolean(PrefKeys.Setting.TAG_CREATED_DESC, false)
+        ) {
+          TagFixedSortMode.CREATED_DESC.value
+        } else {
+          TagFixedSortMode.CREATED_ASC.value
+        }
+        sp.edit(commit = true) {
+          putInt(newKey, mode)
+          remove(PrefKeys.Setting.TAG_CREATED_DESC)
+        }
+        return mode
+      }
+      return sp.getInt(newKey, TagFixedSortMode.CREATED_ASC.value)
+    }
+    set(value) {
+      sp.edit(commit = true) { putInt(PrefKeys.Setting.TAG_FIXED_SORT_MODE, value) }
+    }
+
+  /** 标签展示是否两端对齐（每行首尾贴父容器左右边），与排序模式无关，默认关闭 */
+  var tagEdgeAlign by PrefsDelegate(sp, PrefKeys.Setting.TAG_EDGE_ALIGN, false)
 
   /** 数据分析：一天的分界点小时（默认 5 点，凌晨 5 点前算前一天） */
   var statsDayStartHour by PrefsDelegate(sp, PrefKeys.Setting.STATS_DAY_START_HOUR, 5)
@@ -403,10 +431,10 @@ class SettingPrefs @Inject constructor(
 
 fun SettingPrefs.tagSortFlow(): Flow<TagSortSetting> {
   return callbackFlow {
-    trySend(TagSortSetting(tagSmartSort, tagCreatedDesc))
+    trySend(TagSortSetting(tagSmartSort, TagFixedSortMode.fromValue(tagFixedSortMode)))
     val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-      if (key == PrefKeys.Setting.TAG_SMART_SORT || key == PrefKeys.Setting.TAG_CREATED_DESC) {
-        trySend(TagSortSetting(tagSmartSort, tagCreatedDesc))
+      if (key == PrefKeys.Setting.TAG_SMART_SORT || key == PrefKeys.Setting.TAG_FIXED_SORT_MODE) {
+        trySend(TagSortSetting(tagSmartSort, TagFixedSortMode.fromValue(tagFixedSortMode)))
       }
     }
     sp.registerOnSharedPreferenceChangeListener(listener)

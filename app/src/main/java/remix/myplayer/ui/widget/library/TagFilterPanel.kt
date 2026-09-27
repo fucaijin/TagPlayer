@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -45,8 +44,10 @@ import androidx.compose.ui.unit.sp
 import remix.myplayer.R
 import remix.myplayer.data.model.misc.TagFilterMode
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.controlUncheckedColor
 import remix.myplayer.ui.theme.icon
 import remix.myplayer.ui.widget.common.TagChip
+import remix.myplayer.ui.widget.common.TagFlow
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.util.ext.clickWithRipple
 
@@ -63,7 +64,9 @@ private val DefaultExpandedHeight = 240.dp
  */
 @Composable
 fun TagFilterPanel(
-  allTags: Set<String>,
+  allTags: List<String>,
+  aesthetic: Boolean,
+  edgeAlign: Boolean,
   mode: TagFilterMode,
   includedTags: Set<String>,
   excludedTags: Set<String>,
@@ -171,9 +174,9 @@ fun TagFilterPanel(
         }
       }
 
-      // 标签芯片（可按搜索词过滤、可滚动）
+      // 标签芯片（可按搜索词过滤、可滚动），保留调用方传入的排序顺序
       val filteredTags = if (searchQuery.isBlank()) {
-        allTags.toList()
+        allTags
       } else {
         allTags.filter { it.contains(searchQuery.trim(), ignoreCase = true) }
       }
@@ -193,6 +196,8 @@ fun TagFilterPanel(
             andSwitch = includeAnd,
             onAndChange = onIncludeAndChange,
             tags = filteredTags,
+            aesthetic = aesthetic,
+            edgeAlign = edgeAlign,
             selectedTags = includedTags,
             onToggleTag = onToggleIncludeTag
           )
@@ -210,6 +215,8 @@ fun TagFilterPanel(
             andSwitch = excludeAnd,
             onAndChange = onExcludeAndChange,
             tags = filteredTags,
+            aesthetic = aesthetic,
+            edgeAlign = edgeAlign,
             selectedTags = excludedTags,
             onToggleTag = onToggleExcludeTag
           )
@@ -221,6 +228,8 @@ fun TagFilterPanel(
             .fillMaxWidth(),
           title = null,
           tags = filteredTags,
+          aesthetic = aesthetic,
+          edgeAlign = edgeAlign,
           selectedTags = includedTags,
           onToggleTag = onToggleIncludeTag
         )
@@ -258,6 +267,8 @@ private fun TagChipColumn(
   andSwitch: Boolean? = null,
   onAndChange: ((Boolean) -> Unit)? = null,
   tags: List<String>,
+  aesthetic: Boolean = false,
+  edgeAlign: Boolean = false,
   selectedTags: Set<String>,
   onToggleTag: (String) -> Unit,
 ) {
@@ -299,18 +310,18 @@ private fun TagChipColumn(
         modifier = Modifier.padding(top = 4.dp)
       )
     } else {
-      FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+      TagFlow(
+        tags = tags,
+        aesthetic = aesthetic,
+        edgeAlign = edgeAlign,
+        spacing = 5.dp,
         modifier = Modifier.padding(top = 2.dp)
-      ) {
-        tags.forEach { tag ->
-          TagChip(
-            tag = tag,
-            selected = tag in selectedTags,
-            onClick = { onToggleTag(tag) }
-          )
-        }
+      ) { tag ->
+        TagChip(
+          tag = tag,
+          selected = tag in selectedTags,
+          onClick = { onToggleTag(tag) }
+        )
       }
     }
   }
@@ -345,7 +356,7 @@ private fun SmallSwitch(
       modifier = Modifier
         .size(width = trackWidth, height = trackHeight)
         .clip(CircleShape)
-        .background(if (checked) theme.secondary else theme.textSecondary.copy(alpha = 0.35f)),
+        .background(if (checked) theme.secondary else theme.controlUncheckedColor().copy(alpha = 0.5f)),
       contentAlignment = Alignment.CenterStart
     ) {
       Box(

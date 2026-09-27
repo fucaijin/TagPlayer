@@ -182,9 +182,6 @@ object PrefKeys {
     /** 热力图横坐标显示的时间个数（24/12/8/6） */
     const val HEATMAP_TIME_LABELS = "heatmap_columns"
 
-    /** 批量重命名默认模板（占位符：{title}{artist}{album}{track}{year}） */
-    const val DEFAULT_RENAME_TEMPLATE = "default_rename_template"
-
     /** 歌曲列表底部栏的歌名下方是否显示该歌曲的标签 */
     const val BOTTOM_BAR_SHOW_TAG = "bottom_bar_show_tag"
 
@@ -209,8 +206,14 @@ object PrefKeys {
     /** 标签弹窗是否使用智能排序（最近使用时间 + 使用次数），否则按创建时间固定排列 */
     const val TAG_SMART_SORT = "tag_smart_sort"
 
-    /** 固定位置排序时是否按标签创建时间倒序（新创建的在前），否则正序 */
+    /** 固定位置排序时是否按标签创建时间倒序（新创建的在前），否则正序（旧版布尔，已迁移为 TAG_FIXED_SORT_MODE） */
     const val TAG_CREATED_DESC = "tag_created_desc"
+
+    /** 固定位置排序模式：0 创建时间正序 / 1 创建时间倒序 / 2 标签首字母 / 3 美观紧凑（FFD） */
+    const val TAG_FIXED_SORT_MODE = "tag_fixed_sort_mode"
+
+    /** 标签展示是否两端对齐（与排序模式无关，开启后每行首尾贴父容器左右边） */
+    const val TAG_EDGE_ALIGN = "tag_edge_align"
 
     /** 数据分析：一天的分界点小时（默认 5，即凌晨 5 点前算前一天） */
     const val STATS_DAY_START_HOUR = "stats_day_start_hour"

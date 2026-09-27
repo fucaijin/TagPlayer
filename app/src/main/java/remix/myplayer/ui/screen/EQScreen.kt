@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,6 +43,7 @@ import remix.myplayer.ui.nav.ExtraRestorePlayingScreen
 import remix.myplayer.ui.nav.LocalNavController
 import remix.myplayer.ui.nav.MessageNotifier
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.switchColors
 import remix.myplayer.ui.widget.common.CommonAppBar
 import remix.myplayer.ui.widget.common.LineSlider
 import remix.myplayer.ui.widget.common.TextPrimary
@@ -148,10 +148,7 @@ fun EQScreen(backStackEntry: NavBackStackEntry) {
           Switch(
             modifier = Modifier.scale(0.8f),
             checked = enableEq,
-            colors = SwitchDefaults.colors().copy(
-              checkedTrackColor = LocalTheme.current.secondary,
-              uncheckedTrackColor = Color.Transparent
-            ),
+            colors = LocalTheme.current.switchColors(),
             onCheckedChange = { checked ->
               enableEq = checked
               EQHelper.updateEnable(checked)

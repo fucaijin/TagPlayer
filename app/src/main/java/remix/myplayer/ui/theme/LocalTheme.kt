@@ -50,6 +50,24 @@ data class AppTheme(
       if (isLight) R.color.light_text_color_secondary else R.color.dark_text_color_secondary
     )
 
+  /** 深色主题下的主文本色，不受当前明暗模式影响 */
+  val darkTextPrimary
+    @Composable
+    @ReadOnlyComposable
+    get() = colorResource(R.color.dark_text_color_primary)
+
+  /** 深色主题下的次要文本色，不受当前明暗模式影响 */
+  val darkTextSecondary
+    @Composable
+    @ReadOnlyComposable
+    get() = colorResource(R.color.dark_text_color_secondary)
+
+  /** 深色主题下的图标色，不受当前明暗模式影响 */
+  val darkIcon: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = Color.White
+
   val ripple
     @Composable
     @ReadOnlyComposable

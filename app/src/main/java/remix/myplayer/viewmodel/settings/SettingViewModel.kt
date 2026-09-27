@@ -22,6 +22,7 @@ import remix.myplayer.data.model.audio.APlayerModel
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.data.model.misc.Library
 import remix.myplayer.data.model.misc.Library.Companion.TAG_SONG
+import remix.myplayer.data.model.misc.TagFixedSortMode
 import remix.myplayer.data.model.misc.LyricOrder
 import remix.myplayer.data.prefs.LyricPrefs
 import remix.myplayer.data.prefs.SettingPrefs
@@ -82,10 +83,7 @@ class SettingViewModel @Inject constructor(
       deleteIds = settingPrefs.deleteIds,
       language = settingPrefs.language,
       uiFontScale = SettingPrefs.normalizeUiFontScale(settingPrefs.uiFontScale),
-      shake = settingPrefs.shake,
-      showDisplayName = settingPrefs.showDisplayName,
-      useFilenameInBottomBar = settingPrefs.bottomBarUseFilename,
-      useFilenameInPlayingTitle = settingPrefs.playingTitleUseFilename
+      shake = settingPrefs.shake
     ),
     play = PlaySettings(
       ignoreAudioFocus = settingPrefs.ignoreAudioFocus,
@@ -132,7 +130,10 @@ class SettingViewModel @Inject constructor(
     playingScreen = PlayingScreenSettings(
       background = settingPrefs.playingScreenBackground,
       bottom = settingPrefs.playingScreenBottom,
-      keepScreenOn = settingPrefs.keepScreenOn
+      keepScreenOn = settingPrefs.keepScreenOn,
+      playingTitleUseFilename = settingPrefs.playingTitleUseFilename,
+      playingTitleShowTag = settingPrefs.playingTitleShowTag,
+      playingTitleShowArtistAlbum = settingPrefs.playingTitleShowArtistAlbum
     ),
     cover = CoverSettings(
       ignoreMediaStore = settingPrefs.ignoreMediaStore,
@@ -158,15 +159,15 @@ class SettingViewModel @Inject constructor(
       showTagEdit = settingPrefs.listTagEdit,
       showNumber = settingPrefs.listShowNumber,
       showArtistAlbum = settingPrefs.listShowArtistAlbum,
+      showDisplayName = settingPrefs.showDisplayName,
+      bottomBarUseFilename = settingPrefs.bottomBarUseFilename,
       bottomBarShowTag = settingPrefs.bottomBarShowTag,
-      playingTitleShowTag = settingPrefs.playingTitleShowTag,
       bottomBarShowArtistAlbum = settingPrefs.bottomBarShowArtistAlbum,
-      playingTitleShowArtistAlbum = settingPrefs.playingTitleShowArtistAlbum,
-      defaultRenameTemplate = settingPrefs.defaultRenameTemplate
     ),
     tag = TagSettings(
       smartSort = settingPrefs.tagSmartSort,
-      createdDesc = settingPrefs.tagCreatedDesc
+      fixedSortMode = TagFixedSortMode.fromValue(settingPrefs.tagFixedSortMode),
+      edgeAlign = settingPrefs.tagEdgeAlign
     ),
     analysis = AnalysisSettings(
       dayStartHour = settingPrefs.statsDayStartHour
@@ -238,17 +239,7 @@ class SettingViewModel @Inject constructor(
 
   fun setShowDisplayName(enabled: Boolean) {
     settingPrefs.showDisplayName = enabled
-    _settingsState.update { it.copy(common = it.common.copy(showDisplayName = enabled)) }
-  }
-
-  fun setBottomBarUseFilename(enabled: Boolean) {
-    settingPrefs.bottomBarUseFilename = enabled
-    _settingsState.update { it.copy(common = it.common.copy(useFilenameInBottomBar = enabled)) }
-  }
-
-  fun setPlayingTitleUseFilename(enabled: Boolean) {
-    settingPrefs.playingTitleUseFilename = enabled
-    _settingsState.update { it.copy(common = it.common.copy(useFilenameInPlayingTitle = enabled)) }
+    _settingsState.update { it.copy(list = it.list.copy(showDisplayName = enabled)) }
   }
 
   fun setSongSortRules(enabled: Set<String>) {
@@ -421,6 +412,27 @@ class SettingViewModel @Inject constructor(
     _settingsState.update { it.copy(playingScreen = it.playingScreen.copy(keepScreenOn = enabled)) }
   }
 
+  fun setPlayingTitleUseFilename(enabled: Boolean) {
+    settingPrefs.playingTitleUseFilename = enabled
+    _settingsState.update {
+      it.copy(playingScreen = it.playingScreen.copy(playingTitleUseFilename = enabled))
+    }
+  }
+
+  fun setPlayingTitleShowTag(enabled: Boolean) {
+    settingPrefs.playingTitleShowTag = enabled
+    _settingsState.update {
+      it.copy(playingScreen = it.playingScreen.copy(playingTitleShowTag = enabled))
+    }
+  }
+
+  fun setPlayingTitleShowArtistAlbum(enabled: Boolean) {
+    settingPrefs.playingTitleShowArtistAlbum = enabled
+    _settingsState.update {
+      it.copy(playingScreen = it.playingScreen.copy(playingTitleShowArtistAlbum = enabled))
+    }
+  }
+
   // -------- Cover 分组 ----------
   fun setIgnoreMediaStore(enabled: Boolean) {
     settingPrefs.ignoreMediaStore = enabled
@@ -529,29 +541,19 @@ class SettingViewModel @Inject constructor(
     _settingsState.update { it.copy(list = it.list.copy(showArtistAlbum = enabled)) }
   }
 
+  fun setBottomBarUseFilename(enabled: Boolean) {
+    settingPrefs.bottomBarUseFilename = enabled
+    _settingsState.update { it.copy(list = it.list.copy(bottomBarUseFilename = enabled)) }
+  }
+
   fun setBottomBarShowTag(enabled: Boolean) {
     settingPrefs.bottomBarShowTag = enabled
     _settingsState.update { it.copy(list = it.list.copy(bottomBarShowTag = enabled)) }
   }
 
-  fun setPlayingTitleShowTag(enabled: Boolean) {
-    settingPrefs.playingTitleShowTag = enabled
-    _settingsState.update { it.copy(list = it.list.copy(playingTitleShowTag = enabled)) }
-  }
-
   fun setBottomBarShowArtistAlbum(enabled: Boolean) {
     settingPrefs.bottomBarShowArtistAlbum = enabled
     _settingsState.update { it.copy(list = it.list.copy(bottomBarShowArtistAlbum = enabled)) }
-  }
-
-  fun setPlayingTitleShowArtistAlbum(enabled: Boolean) {
-    settingPrefs.playingTitleShowArtistAlbum = enabled
-    _settingsState.update { it.copy(list = it.list.copy(playingTitleShowArtistAlbum = enabled)) }
-  }
-
-  fun setDefaultRenameTemplate(template: String) {
-    settingPrefs.defaultRenameTemplate = template
-    _settingsState.update { it.copy(list = it.list.copy(defaultRenameTemplate = template)) }
   }
 
   // -------- Tag(标签管理) 分组 ----------
@@ -561,10 +563,16 @@ class SettingViewModel @Inject constructor(
     _settingsState.update { it.copy(tag = it.tag.copy(smartSort = enabled)) }
   }
 
-  /** 固定位置排序时按标签创建时间倒序（新创建的在前） */
-  fun setTagCreatedDesc(desc: Boolean) {
-    settingPrefs.tagCreatedDesc = desc
-    _settingsState.update { it.copy(tag = it.tag.copy(createdDesc = desc)) }
+  /** 固定位置排序模式：0 创建时间正序 / 1 创建时间倒序 / 2 标签首字母 / 3 美观紧凑（FFD） */
+  fun setTagFixedSortMode(mode: TagFixedSortMode) {
+    settingPrefs.tagFixedSortMode = mode.value
+    _settingsState.update { it.copy(tag = it.tag.copy(fixedSortMode = mode)) }
+  }
+
+  /** 标签展示是否两端对齐（每行首尾贴父容器左右边），与排序模式无关 */
+  fun setTagEdgeAlign(enabled: Boolean) {
+    settingPrefs.tagEdgeAlign = enabled
+    _settingsState.update { it.copy(tag = it.tag.copy(edgeAlign = enabled)) }
   }
 
   // -------- Other(其他) 分组 ----------

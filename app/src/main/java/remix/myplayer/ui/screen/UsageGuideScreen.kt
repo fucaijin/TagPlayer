@@ -40,6 +40,21 @@ fun UsageGuideScreen() {
       body = stringResource(R.string.usage_tag_filter_desc),
     )
 
+    UsageSection(
+      title = stringResource(R.string.usage_clear_search_title),
+      body = stringResource(R.string.usage_clear_search_desc),
+    )
+
+    UsageSection(
+      title = stringResource(R.string.usage_tag_export_import_title),
+      body = stringResource(R.string.usage_tag_export_import_desc),
+    )
+
+    UsageSection(
+      title = stringResource(R.string.usage_batch_rename_title),
+      body = stringResource(R.string.usage_batch_rename_desc),
+    )
+
     // 后续可在此追加更多操作说明（如标签管理、数据分析等）
   }
 }

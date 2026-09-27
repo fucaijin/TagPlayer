@@ -85,6 +85,7 @@ import remix.myplayer.repo.StatsTimeUtil
 import remix.myplayer.ui.nav.MessageNotifier
 import remix.myplayer.viewmodel.ActiveSortBy
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.switchColors
 import remix.myplayer.ui.widget.common.CommonAppBar
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
@@ -610,7 +611,12 @@ private fun ModuleSettingSection(
         modifier = Modifier.size(39.dp, 24.dp),
         contentAlignment = Alignment.Center
       ) {
-        Switch(checked = enabled, onCheckedChange = onEnabledChange, modifier = Modifier.scale(0.75f))
+        Switch(
+          colors = LocalTheme.current.switchColors(),
+          checked = enabled,
+          onCheckedChange = onEnabledChange,
+          modifier = Modifier.scale(0.75f)
+        )
       }
     }
     AnimatedVisibility(visible = expanded) {
@@ -1268,7 +1274,8 @@ private fun ListeningTrendChart(points: List<ListeningTrendPoint>) {
       val bubbleW = (maxOf(tl.size.width, vt.size.width) + pad * 2)
       val bubbleH = (tl.size.height + vt.size.height + pad * 2).toFloat()
       val bx = (cx - bubbleW / 2).coerceIn(0f, size.width - bubbleW)
-      val by = (cy - bubbleH - 8.dp.toPx()).coerceAtLeast(topPad)
+      // 信息框固定在图表顶端，避免手指长按吸附时遮挡显示内容
+      val by = topPad
       drawRoundRect(
         color = bubbleBgColor,
         topLeft = Offset(bx, by),

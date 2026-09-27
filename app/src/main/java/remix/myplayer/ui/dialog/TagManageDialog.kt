@@ -1,6 +1,7 @@
 package remix.myplayer.ui.dialog
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,26 +66,32 @@ fun TagManageDialog() {
 
   NormalDialog(
     dialogState = state.dialogState,
-    titleRes = R.string.tag_manage,
     negativeRes = R.string.cancel,
     onNegative = { libraryVM.dismissTagManageDialog() },
     custom = {
+      // 标题 + 新建标签按钮（与列表删除按钮右对齐）
       Row(
-        modifier = Modifier
-          .fillMaxWidth()
-          .clickWithRipple(false) {
-            creating = true
-            renameTarget = null
-            inputText = ""
-            inputDialogState.show()
-          }
-          .padding(vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
       ) {
         TextPrimary(
+          stringResource(R.string.tag_manage),
+          fontSize = 18.sp,
+          fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        TextPrimary(
           stringResource(R.string.create_tag),
           fontSize = 15.sp,
-          color = theme.secondary
+          color = theme.secondary,
+          modifier = Modifier
+            .clickWithRipple(false) {
+              creating = true
+              renameTarget = null
+              inputText = ""
+              inputDialogState.show()
+            }
+            .padding(horizontal = 8.dp, vertical = 6.dp)
         )
       }
 

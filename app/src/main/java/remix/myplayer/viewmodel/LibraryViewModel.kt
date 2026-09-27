@@ -3,6 +3,7 @@ package remix.myplayer.viewmodel
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore.Audio
+import java.text.Collator
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -28,6 +29,7 @@ import remix.myplayer.R
 import remix.myplayer.data.db.room.entity.PlayList
 import remix.myplayer.data.db.room.entity.TagEntity
 import remix.myplayer.data.model.misc.TagSortSetting
+import remix.myplayer.data.model.misc.TagFixedSortMode
 import remix.myplayer.data.prefs.tagSortFlow
 import remix.myplayer.data.model.audio.APlayerModel
 import remix.myplayer.data.model.audio.Album
@@ -51,6 +53,7 @@ import remix.myplayer.repo.PlayListRepository
 import remix.myplayer.repo.SearchHistoryRepository
 import remix.myplayer.repo.SongRepository
 import remix.myplayer.repo.SongTagRepository
+import remix.myplayer.repo.ExportMode
 import remix.myplayer.App
 import remix.myplayer.repo.TagImportSummary
 import remix.myplayer.repo.usecase.ExportPlayListUseCase
@@ -71,6 +74,7 @@ import remix.myplayer.ui.dialog.SongTagManageState
 import remix.myplayer.ui.dialog.TagManageState
 import remix.myplayer.ui.nav.MessageNotifier
 import remix.myplayer.util.PermissionUtil
+import remix.myplayer.util.MetaField
 import remix.myplayer.util.ext.checkWorkerThread
 import remix.myplayer.util.RenameTemplate
 import remix.myplayer.util.ext.updateIf
@@ -143,17 +147,38 @@ class LibraryViewModel @Inject constructor(
           .thenBy { it }
       )
     } else {
-      // 没有创建时间记录的标签（理论上已由扫描补齐）统一排在最后，按名称兜底
-      val known = tags.filter { meta.containsKey(it) }
-      val unknown = tags.filterNot { meta.containsKey(it) }.sorted()
-      val sortedKnown = if (sort.createdDesc) {
-        known.sortedWith(
-          compareByDescending<String> { meta[it]?.createdAt ?: 0L }.thenBy { it }
-        )
-      } else {
-        known.sortedWith(compareBy<String> { meta[it]?.createdAt ?: 0L }.thenBy { it })
+      when (sort.fixedSortMode) {
+        TagFixedSortMode.ALPHA -> {
+          // 按标签首字母（本地化）排序
+          val collator = Collator.getInstance()
+          tags.sortedWith(compareBy(collator) { it })
+        }
+        TagFixedSortMode.CREATED_DESC -> {
+          // 没有创建时间记录的标签（理论上已由扫描补齐）统一排在最后，按名称兜底
+          val known = tags.filter { meta.containsKey(it) }
+          val unknown = tags.filterNot { meta.containsKey(it) }.sorted()
+          val sortedKnown = known.sortedWith(
+            compareByDescending<String> { meta[it]?.createdAt ?: 0L }.thenBy { it }
+          )
+          sortedKnown + unknown
+        }
+        // 美观排序（尽量紧凑）：实际装箱（FFD）在 UI 层按标签真实宽度完成；
+        // 此处先按长度降序给出"递减"预排序（长度近似宽度），无元数据的标签统一置于末尾。
+        TagFixedSortMode.AESTHETIC -> {
+          val known = tags.filter { meta.containsKey(it) }.sortedByDescending { it.length }
+          val unknown = tags.filterNot { meta.containsKey(it) }.sortedByDescending { it.length }
+          known + unknown
+        }
+        else -> {
+          // 创建时间正序（早→晚）
+          val known = tags.filter { meta.containsKey(it) }
+          val unknown = tags.filterNot { meta.containsKey(it) }.sorted()
+          val sortedKnown = known.sortedWith(
+            compareBy<String> { meta[it]?.createdAt ?: 0L }.thenBy { it }
+          )
+          sortedKnown + unknown
+        }
       }
-      sortedKnown + unknown
     }
   }
 
@@ -354,11 +379,17 @@ class LibraryViewModel @Inject constructor(
     fetchMedia(true)
   }
 
-  /** 导出所有歌曲标签为 JSON 字符串 */
-  suspend fun exportTagsJson(): String = songTagRepo.exportTagsJson()
+  /** 导出所有歌曲标签为 JSON 字符串（[mode] 指定文件名或元数据匹配方式） */
+  suspend fun exportTagsJson(mode: ExportMode, fields: List<MetaField> = listOf(MetaField.TITLE, MetaField.ARTIST)): String {
+    val songs = songs.value
+    return songTagRepo.exportTagsJson(songs, mode, fields)
+  }
 
-  /** 从 JSON 字符串导入标签，返回导入统计 */
-  suspend fun importTagsJson(json: String): TagImportSummary = songTagRepo.importTagsJson(json)
+  /** 从 JSON 字符串导入标签，按文件记录的方式匹配本机歌曲，返回导入统计 */
+  suspend fun importTagsJson(json: String): TagImportSummary {
+    val songs = songs.value
+    return songTagRepo.importTagsJson(json, songs)
+  }
 
   // -------- 单曲标签管理弹窗 ----------
   private val _songTagManageState = MutableStateFlow(SongTagManageState())
@@ -744,22 +775,12 @@ class LibraryViewModel @Inject constructor(
     }
   }
 
-  // -------- 批量重命名弹窗（歌曲多选后） ----------
+  // -------- 批量修改页面（歌曲多选后） ----------
   private val _batchRenameState = MutableStateFlow(BatchRenameState())
   val batchRenameState = _batchRenameState.asStateFlow()
 
-  fun showBatchRenameDialog(songs: List<Song>) {
-    _batchRenameState.updateIf(condition = { !it.dialogState.isOpen }) {
-      it.dialogState.show()
-      it.copy(songs = songs)
-    }
-  }
-
-  fun dismissBatchRenameDialog() {
-    _batchRenameState.update { state ->
-      state.dialogState.dismiss()
-      state.copy()
-    }
+  fun showBatchRename(songs: List<Song>) {
+    _batchRenameState.update { it.copy(songs = songs) }
   }
 
   /**

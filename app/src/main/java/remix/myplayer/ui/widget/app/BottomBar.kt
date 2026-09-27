@@ -31,7 +31,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import remix.myplayer.R
@@ -66,10 +65,12 @@ fun BottomBar(modifier: Modifier = Modifier, vm: PlaybackViewModel = playbackVie
   var hasTriggerAct by remember { mutableStateOf(false) }
   var hasTriggerOp by remember { mutableStateOf(false) }
 
+  // 底部栏背景使用主色调，其中的文字统一为白色，图标始终保持深色主题下的配色
+  val theme = LocalTheme.current
   val baseModifier = modifier
     .fillMaxWidth()
     .height(72.dp)
-    .background(LocalTheme.current.dialogBackground)
+    .background(theme.primary)
 
   val isSongValid = playbackState.song.valid()
   val interactionModifiers = if (isSongValid) {
@@ -129,15 +130,19 @@ fun BottomBar(modifier: Modifier = Modifier, vm: PlaybackViewModel = playbackVie
         .padding(horizontal = 8.dp)
     ) {
       val song = playbackState.song
-      val bottomTitle = if (settingState.common.useFilenameInBottomBar) {
+      val bottomTitle = if (settingState.list.bottomBarUseFilename) {
         File(song.data).nameWithoutExtension
       } else {
         song.title
       }
-      TextPrimary(bottomTitle, fontSize = 16.sp)
+      TextPrimary(bottomTitle, fontSize = 16.sp, color = Color.White)
       if (settingState.list.bottomBarShowArtistAlbum && song.artistAlbum.isNotEmpty()) {
         Spacer(modifier = Modifier.height(2.dp))
-        TextSecondary(text = song.artistAlbum, fontSize = 14.sp)
+        TextSecondary(
+          text = song.artistAlbum,
+          fontSize = 14.sp,
+          color = Color.White
+        )
       }
       if (settingState.list.bottomBarShowTag) {
         val tags = songTags[song.data].orEmpty()
@@ -145,7 +150,8 @@ fun BottomBar(modifier: Modifier = Modifier, vm: PlaybackViewModel = playbackVie
           Spacer(modifier = Modifier.height(2.dp))
           TextSecondary(
             tags.joinToString(" ") { "#$it" },
-            fontSize = 12.sp
+            fontSize = 12.sp,
+            color = Color.White
           )
         }
       }
@@ -155,8 +161,7 @@ fun BottomBar(modifier: Modifier = Modifier, vm: PlaybackViewModel = playbackVie
       modifier = Modifier.padding(end = 16.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
-      val buttonColor =
-        Color((if (LocalTheme.current.isLight) "#323334" else "#FFFFFF").toColorInt())
+      val buttonColor = theme.darkIcon
       Icon(
         modifier = Modifier
           .clickableWithoutRipple(interactionSource) {

@@ -18,6 +18,7 @@ object AudioTagFile {
   const val COMPOSER = "COMPOSER"
   const val GENRE = "GENRE"
   const val DATE = "DATE"
+  const val COMMENT = "COMMENT"
   const val TRACK_NUMBER = "TRACKNUMBER"
   const val DISC_NUMBER = "DISCNUMBER"
   const val LYRICS = "LYRICS"

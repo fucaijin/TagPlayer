@@ -9,7 +9,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import remix.myplayer.R
 import remix.myplayer.helper.SortOrder
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.radioButtonColors
 import remix.myplayer.viewmodel.libraryViewModel
 
 @Composable
@@ -84,7 +84,7 @@ fun HistoryPopup() {
           ) {
             Text(stringResource(item.first), color = LocalTheme.current.textPrimary)
             RadioButton(
-              colors = RadioButtonDefaults.colors(selectedColor = LocalTheme.current.primary),
+              colors = LocalTheme.current.radioButtonColors(),
               selected = selectedIndex == index,
               onClick = {
                 saveSortOrder(index)

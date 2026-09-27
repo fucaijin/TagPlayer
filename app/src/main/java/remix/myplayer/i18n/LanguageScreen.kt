@@ -35,7 +35,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,6 +57,7 @@ import remix.myplayer.ui.dialog.DialogState
 import remix.myplayer.ui.dialog.NormalDialog
 import remix.myplayer.ui.dialog.rememberDialogState
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.radioButtonColors
 import remix.myplayer.ui.theme.highLightText
 import remix.myplayer.ui.widget.common.CommonAppBar
 import remix.myplayer.ui.widget.common.TextPrimary
@@ -347,12 +347,7 @@ private fun LanguageItem(
       RadioButton(
         selected = option.tag == activeTag,
         onClick = onSelect,
-        colors = RadioButtonDefaults.colors(
-          selectedColor = theme.primary,
-          unselectedColor = theme.textSecondary,
-          disabledSelectedColor = theme.textSecondary,
-          disabledUnselectedColor = theme.textSecondary,
-        ),
+        colors = theme.radioButtonColors(),
       )
     }
     TextPrimary(

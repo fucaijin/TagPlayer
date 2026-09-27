@@ -142,7 +142,10 @@ fun ListSong(
           Image(
             painter = painterResource(R.drawable.ic_star_24dp),
             contentDescription = "manage tags",
-            colorFilter = ColorFilter.tint(LocalTheme.current.popupButton())
+            colorFilter = ColorFilter.tint(
+              // 浅色模式下使用强调色，深色模式保持不变
+              if (theme.isLight) theme.secondary else theme.popupButton()
+            )
           )
         }
       }

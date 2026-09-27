@@ -37,10 +37,6 @@ import remix.myplayer.ui.screen.setting.logic.common.ManualScanLogic
 import remix.myplayer.ui.screen.setting.logic.common.RestoreDeleteLogic
 import remix.myplayer.ui.screen.setting.logic.common.ScanSizeLogic
 import remix.myplayer.ui.screen.setting.logic.common.ShakeLogic
-import remix.myplayer.ui.screen.setting.logic.common.ShowDisplayNameLogic
-import remix.myplayer.ui.screen.setting.logic.common.FilenameDisplayLogic
-import remix.myplayer.ui.screen.setting.logic.common.SongTagIOLogic
-import remix.myplayer.ui.screen.setting.logic.list.DefaultRenameTemplateLogic
 import remix.myplayer.ui.screen.setting.logic.list.SongSortRulesLogic
 import remix.myplayer.ui.screen.setting.logic.common.UiFontScaleLogic
 import remix.myplayer.ui.screen.setting.logic.cover.AutoDownloadLogic
@@ -48,12 +44,12 @@ import remix.myplayer.ui.screen.setting.logic.cover.DownloadSourceLogic
 import remix.myplayer.ui.screen.setting.logic.cover.IgnoreMediaStoreLogic
 import remix.myplayer.ui.screen.setting.logic.library.LibraryLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListShowArtistAlbumLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListShowDisplayNameLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListShowNumberLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListShowTagLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListBottomBarArtistAlbumLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListBottomBarTagLogic
-import remix.myplayer.ui.screen.setting.logic.list.ListPlayingTitleArtistAlbumLogic
-import remix.myplayer.ui.screen.setting.logic.list.ListPlayingTitleTagLogic
+import remix.myplayer.ui.screen.setting.logic.list.ListBottomBarUseFilenameLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListTagEditLogic
 import remix.myplayer.ui.screen.setting.logic.list.ListTagManageLogic
 import remix.myplayer.ui.screen.setting.logic.lyric.DesktopLyricLogic
@@ -70,6 +66,8 @@ import remix.myplayer.ui.screen.setting.logic.other.LogEnabledLogic
 import remix.myplayer.ui.screen.setting.logic.play.AutoPlayLogic
 import remix.myplayer.ui.screen.setting.logic.tag.TagFixedSortLogic
 import remix.myplayer.ui.screen.setting.logic.tag.TagSmartSortLogic
+import remix.myplayer.ui.screen.setting.logic.tag.TagEdgeAlignLogic
+import remix.myplayer.ui.screen.setting.logic.tag.SongTagIOLogic
 import remix.myplayer.ui.screen.setting.logic.play.DecoderModeLogic
 import remix.myplayer.ui.screen.setting.logic.play.IgnoreAudioFocusLogic
 import remix.myplayer.ui.screen.setting.logic.play.ListLoopLogic
@@ -79,6 +77,9 @@ import remix.myplayer.ui.screen.setting.logic.playingscreen.KeepScreenOnLogic
 import remix.myplayer.ui.screen.setting.logic.playingscreen.PlayingCoverAnimationLogic
 import remix.myplayer.ui.screen.setting.logic.playingscreen.PlayingScreenBackgroundLogic
 import remix.myplayer.ui.screen.setting.logic.playingscreen.PlayingScreenBottomLogic
+import remix.myplayer.ui.screen.setting.logic.playingscreen.PlayingTitleArtistAlbumLogic
+import remix.myplayer.ui.screen.setting.logic.playingscreen.PlayingTitleTagLogic
+import remix.myplayer.ui.screen.setting.logic.playingscreen.PlayingTitleUseFilenameLogic
 import remix.myplayer.ui.theme.LocalTheme
 import remix.myplayer.ui.widget.common.CommonAppBar
 import remix.myplayer.viewmodel.mainViewModel
@@ -242,10 +243,6 @@ private fun CommonPreferenceItems() {
   UiFontScaleLogic()
 
   ShakeLogic()
-
-  ShowDisplayNameLogic()
-
-  FilenameDisplayLogic()
 }
 
 @Composable
@@ -294,21 +291,17 @@ private fun ListPreferenceItems() {
 
   ListTagEditLogic()
 
-  SongTagIOLogic()
-
-  DefaultRenameTemplateLogic()
-
   ListShowNumberLogic()
 
   ListShowArtistAlbumLogic()
 
+  ListShowDisplayNameLogic()
+
+  ListBottomBarUseFilenameLogic()
+
   ListBottomBarTagLogic()
 
-  ListPlayingTitleTagLogic()
-
   ListBottomBarArtistAlbumLogic()
-
-  ListPlayingTitleArtistAlbumLogic()
 }
 
 @Composable
@@ -322,6 +315,12 @@ private fun TagPreferenceItems() {
   if (!settingState.tag.smartSort) {
     TagFixedSortLogic()
   }
+
+  // 两端对齐展示与排序模式无关，始终可设置
+  TagEdgeAlignLogic()
+
+  // 歌曲标签的导出/导入（JSON）
+  SongTagIOLogic()
 }
 
 @Composable
@@ -331,6 +330,12 @@ private fun PlayingScreenPreferenceItems() {
   PlayingScreenBottomLogic()
 
   KeepScreenOnLogic()
+
+  PlayingTitleUseFilenameLogic()
+
+  PlayingTitleTagLogic()
+
+  PlayingTitleArtistAlbumLogic()
 }
 
 @Composable

@@ -1,8 +1,6 @@
 package remix.myplayer.ui.dialog
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,10 +18,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import remix.myplayer.R
 import remix.myplayer.data.model.audio.Song
+import remix.myplayer.data.model.misc.TagFixedSortMode
 import remix.myplayer.ui.widget.common.TagChip
+import remix.myplayer.ui.widget.common.TagFlow
 import remix.myplayer.ui.widget.common.TextSecondary
 import remix.myplayer.util.PermissionUtil
 import remix.myplayer.viewmodel.libraryViewModel
+import remix.myplayer.viewmodel.settingViewModel
 
 /**
  * 单曲标签管理弹窗状态
@@ -42,8 +43,12 @@ data class SongTagManageState(
 fun SongTagManageDialog() {
   val libraryVM = libraryViewModel
   val state by libraryVM.songTagManageState.collectAsStateWithLifecycle()
-  // 按设置的排序方式（智能排序 / 按创建时间固定位置）排列后的标签
+  // 按设置的排序方式（智能排序 / 固定位置：创建时间正序、倒序、首字母、美观紧凑）排列后的标签
   val tags by libraryVM.orderedTags.collectAsStateWithLifecycle()
+  val settingVM = settingViewModel
+  val settingState = settingVM.settingsState.collectAsStateWithLifecycle().value
+  val aesthetic = settingState.tag.fixedSortMode == TagFixedSortMode.AESTHETIC
+  val edgeAlign = settingState.tag.edgeAlign
   val song = state.song
   // 写标签需要"所有文件访问"权限，未授权时先引导
   val storageDialogState = rememberDialogState()
@@ -82,19 +87,19 @@ fun SongTagManageDialog() {
             .weight(1f, false)
             .verticalScroll(rememberScrollState())
         ) {
-          FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+          TagFlow(
+            tags = tags,
+            aesthetic = aesthetic,
+            edgeAlign = edgeAlign,
+            spacing = 6.dp,
             modifier = Modifier.padding(top = 8.dp)
-          ) {
-            tags.forEach { tag ->
-              TagChip(
-                tag = tag,
-                selected = tag in selected,
-                fontSize = 14.sp,
-                onClick = { selected = if (tag in selected) selected - tag else selected + tag }
-              )
-            }
+          ) { tag ->
+            TagChip(
+              tag = tag,
+              selected = tag in selected,
+              fontSize = 14.sp,
+              onClick = { selected = if (tag in selected) selected - tag else selected + tag }
+            )
           }
         }
       }

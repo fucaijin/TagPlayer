@@ -233,4 +233,34 @@ object AudioTagWriter {
     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
     return stream.toByteArray()
   }
+
+  /**
+   * 批量写入单首歌曲的若干标准字段（fieldKey -> 值），不弹 toast。
+   * 失败会向上抛出，由调用方统计成功/失败。
+   */
+  suspend fun saveTagFields(
+    context: Context,
+    song: Song,
+    fieldMap: Map<String, String>
+  ) = withContext(Dispatchers.IO) {
+    if (fieldMap.isEmpty()) return@withContext
+    val request = PendingWriteRequest(song, fieldMap)
+    writeAudioTag(context, request, withFallback = true)
+    runCatching {
+      AppDatabase.getInstance(context).playEventDao().updateMetaByPath(
+        path = request.song.data,
+        title = request.fieldMap[AudioTagFile.TITLE].orEmpty(),
+        artist = request.fieldMap[AudioTagFile.ARTIST].orEmpty(),
+        album = request.fieldMap[AudioTagFile.ALBUM].orEmpty()
+      )
+    }
+    MediaScannerConnection.scanFile(
+      context,
+      arrayOf(request.song.data), null
+    ) { _, uri ->
+      val notifyUri = uri ?: request.song.contentUri
+      context.contentResolver.notifyChange(notifyUri, null)
+      sendTagChangedBroadcast(context, request)
+    }
+  }
 }

@@ -568,4 +568,76 @@
   <string name="title_dynamic_smb">SMB 客戶端</string>
   <string name="select_image">選擇圖片</string>
   <string name="clear_cover">清除封面</string>
+
+  <!-- 標籤匯出 / 匯入 -->
+  <string name="tag_export_filename">匯出(檔名-標籤)</string>
+  <string name="tag_export_filename_tip">將每首歌的標籤備份為 JSON，按檔名（不含副檔名）匹配</string>
+  <string name="tag_export_metadata">匯出(元數據-標籤)</string>
+  <string name="tag_export_metadata_tip">將每首歌的標籤備份為 JSON，按元數據匹配</string>
+  <string name="tag_export_metadata_fields">用於匹配的元數據欄位</string>
+  <string name="tag_export_metadata_fields_hint">預設勾選：歌曲名稱 + 歌手。勾選哪些欄位作為同一首歌的判斷依據。</string>
+  <string name="tag_export_metadata_fields_empty">請至少勾選一個欄位</string>
+  <string name="tag_import_result_title">匯入結果</string>
+  <string name="tag_import_failed_list">寫入失敗的項目</string>
+  <string name="tag_import_missing_list">未匹配的項目</string>
+  <string name="tag_import_copy">複製</string>
+  <string name="tag_import_copied">已複製到剪貼簿</string>
+
+  <!-- 標籤排序 / 兩端對齊 -->
+  <string name="tag_sort_alpha">標籤首字母</string>
+  <string name="tag_sort_aesthetic">美觀排序（盡量緊湊）</string>
+  <string name="tag_edge_align">標籤兩端對齊</string>
+  <string name="tag_edge_align_tip">開啟後每行首尾標籤貼齊容器左右邊，其餘標籤平均分配剩餘寬度；若最後一行是標籤數量最少的一行則不對該行生效（保持左對齊），避免少量標籤被拉開過大空隙；與排序模式無關</string>
+
+  <!-- 批次修改 -->
+  <string name="batch_modify">批次修改</string>
+  <string name="batch_rename_mode_meta">依元數據改名</string>
+  <string name="batch_rename_mode_file">依檔名寫入標籤</string>
+  <string name="batch_rename_mode_meta_hint">格式：用 {欄位} 占位，例如 {Artist} - {Title}；占位符大小寫不敏感，未識別的占位符會原樣保留。支援的欄位：%1$s。產生的新檔名保留原副檔名，所需元數據缺失的列會標紅。</string>
+  <string name="batch_rename_mode_file_hint">擷取規則：用 {欄位} 占位，例如 {Artist} - {Title}，欄位之間的內容按分隔符號（或正則）拆分，從檔名解析後寫入對應元數據。支援的欄位：%1$s。</string>
+  <string name="batch_rename_old_name">原檔名</string>
+  <string name="batch_rename_new_name">新檔名</string>
+  <string name="batch_rename_filename">檔名</string>
+  <string name="batch_rename_legend_nochange">不變</string>
+  <string name="batch_rename_legend_ok">有效</string>
+  <string name="batch_rename_legend_bad">缺失/空白</string>
+  <string name="batch_rename_save">儲存</string>
+  <string name="batch_rename_cancel_save">取消</string>
+  <string name="batch_rename_undo">還原</string>
+  <string name="batch_rename_done">完成</string>
+  <string name="batch_rename_saving">儲存中…</string>
+  <string name="batch_rename_done_title">操作完成</string>
+  <string name="batch_rename_result">成功 %1$d，失敗 %2$d，跳過 %3$d</string>
+  <string name="batch_rename_loading">正在讀取檔案資訊…</string>
+  <string name="batch_rename_empty">沒有可選的歌曲</string>
+  <string name="batch_rename_no_field">規則未包含任何可識別的欄位（如 {Title}）</string>
+  <string name="batch_rename_undo_done">已還原上一次操作</string>
+  <string name="batch_rename_export_log">匯出儲存記錄</string>
+  <string name="batch_rename_export_full_log">匯出完整記錄</string>
+  <string name="batch_rename_log_exported">儲存記錄已匯出</string>
+  <string name="batch_rename_log_export_failed">儲存記錄匯出失敗</string>
+  <string name="batch_rename_show_detail">查看失敗原因</string>
+  <string name="batch_rename_hide_detail">收起</string>
+  <string name="batch_rename_fail_count">共 %1$d 項失敗</string>
+  <string name="batch_rename_fail_reason">原因</string>
+  <string name="batch_rename_fail_not_local">檔案不在本機，無法修改</string>
+  <string name="batch_rename_fail_src_missing">來源檔案不存在或無法存取</string>
+  <string name="batch_rename_fail_target_exists">目標檔案已存在（重名）</string>
+  <string name="batch_rename_fail_rename_failed">系統重新命名失敗（無寫入權限或跨儲存分區）</string>
+  <string name="batch_rename_fail_write_tag_failed">寫入標籤失敗</string>
+  <string name="batch_rename_fail_exception">儲存時發生例外</string>
+  <string name="batch_rename_mode_manual">手動改名</string>
+  <string name="batch_rename_mode_meta_edit">手動改元數據</string>
+  <string name="batch_rename_copy">複製</string>
+  <string name="batch_rename_clear">清空</string>
+  <string name="batch_rename_copied">已複製原檔名</string>
+  <string name="batch_rename_select_columns">選擇要修改的欄位（檔名僅顯示，不可修改）</string>
+
+  <!-- 使用說明 -->
+  <string name="usage_clear_search_title">清空搜尋記錄</string>
+  <string name="usage_clear_search_desc">依下列步驟刪除全部搜尋關鍵字：\n設定 -> 其他 -> 清空搜尋記錄\n在彈出的確認框中點擊「確認」，即可清空全部搜尋記錄。</string>
+  <string name="usage_tag_export_import_title">標籤匯出與匯入</string>
+  <string name="usage_tag_export_import_desc">在「設定 -> 標籤管理」中可匯出/匯入歌曲標籤：\n匯出分兩種方式：\n· 檔名-標籤：以檔名（不含副檔名）作為匹配依據，適合把同一批歌曲換裝置/換目錄後恢復標籤。\n· 元數據-標籤：以歌曲元數據（預設「歌曲名稱 + 歌手」，可額外勾選「專輯」「類型」）作為匹配依據，不受檔名與路徑影響。\n匯出的檔案會記錄所用方式；匯入時自動按記錄的方式在本機曲庫中匹配，匹配到的歌曲會被打上對應標籤。\n匯入結束後會彈出結果列表，列出寫入失敗與未匹配的項目，並可一鍵複製，方便核對。</string>
+  <string name="usage_batch_rename_title">批次修改</string>
+  <string name="usage_batch_rename_desc">在歌曲列表中多選歌曲後，透過「批次修改」可對所選檔案進行批次操作，彈窗頂部可切換四種模式：\n模式一（依元數據改名）：在頂部設定命名格式，如 {Artist}-{Title}，將用每首歌對應的元數據產生新檔名（不改變副檔名）。表格展示「元數據欄 / 原檔名 / 新檔名」；有變更顯示綠色、無變更灰色、所需元數據缺失顯示紅色（手動補全後變綠）。\n模式二（依檔名寫入標籤）：在頂部設定擷取規則（支援正則，如 {Artist}-{Title}），從檔名擷取資訊寫入對應元數據。表格展示「檔名 / 各元數據欄」；與原值一致灰色、已填入綠色、空白紅色（歌曲名稱/標題不可為空，否則禁止儲存）。\n模式三（手動改名）：兩欄表格——原檔名（帶「複製」按鈕）與新檔名（預設回填原名、可手動修改、帶「清空」按鈕）；有變更顯示綠色、無變更灰色。\n模式四（手動改元數據）：頂部勾選要修改的欄位（檔名僅展示、不可改）；每列每格可手動編輯並帶「清空」按鈕；勾選「歌曲名稱/標題」時不可為空（空則禁止儲存）。\n儲存時顯示進度條，可隨時取消；操作前會記錄原資訊，完成後可一鍵「還原（回退）」檔案操作。頁面頂部的「還原」用於回退本次操作中手動填錯的儲存格，關閉頁面即失效。</string>
 </resources>

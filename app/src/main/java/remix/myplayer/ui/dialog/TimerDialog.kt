@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -33,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import remix.myplayer.R
 import remix.myplayer.ui.nav.MessageNotifier
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.switchColors
 import remix.myplayer.ui.widget.app.CircleSeekBar
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
@@ -142,7 +142,8 @@ fun TimerDialog() {
                   tipDialogState.show()
                 },
               painter = painterResource(R.drawable.ic_info_24dp),
-              contentDescription = "TimerTip"
+              contentDescription = "TimerTip",
+              tint = LocalTheme.current.textPrimary
             )
 
             TextPrimary(
@@ -152,10 +153,7 @@ fun TimerDialog() {
 
             Switch(
               checked = timerState.timerStartAuto,
-              colors = SwitchDefaults.colors().copy(
-                checkedTrackColor = LocalTheme.current.secondary,
-                uncheckedTrackColor = Color.Transparent
-              ),
+              colors = LocalTheme.current.switchColors(),
               onCheckedChange = { isChecked ->
                 if (isChecked) {
                   if (timerState.durationInSec > 0) {
@@ -192,10 +190,7 @@ fun TimerDialog() {
             )
             Switch(
               checked = timerState.exitAfterTimerFinish,
-              colors = SwitchDefaults.colors().copy(
-                checkedTrackColor = LocalTheme.current.secondary,
-                uncheckedTrackColor = Color.Transparent
-              ),
+              colors = LocalTheme.current.switchColors(),
               onCheckedChange = {
                 timerVM.updateState(exitAfterTimerFinish = it)
               },

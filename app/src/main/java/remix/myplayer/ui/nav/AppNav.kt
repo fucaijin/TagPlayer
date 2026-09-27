@@ -53,6 +53,7 @@ import remix.myplayer.misc.cache.DiskCache
 import remix.myplayer.ui.AppScaffold
 import remix.myplayer.ui.dialog.DialogContainer
 import remix.myplayer.ui.screen.AboutScreen
+import remix.myplayer.ui.screen.BatchRenameScreen
 import remix.myplayer.ui.screen.CustomSortScreen
 import remix.myplayer.ui.screen.DataAnalysisScreen
 import remix.myplayer.ui.screen.EQScreen
@@ -96,6 +97,7 @@ const val RouteEq = "eq"
 const val RouteSupport = "support"
 const val RouteDataAnalysis = "data_analysis"
 const val RouteLanguage = "language"
+const val RouteBatchRename = "batch_rename"
 
 // 存在目标页 NavBackStackEntry.savedStateHandle 里的标志，
 // 标记该页是从播放页浮窗跳转过来的，退出时需要恢复浮窗
@@ -290,6 +292,10 @@ fun AppNav() {
 
             normalAnimatedScreen(RouteDataAnalysis) {
               DataAnalysisScreen()
+            }
+
+            normalAnimatedScreen(RouteBatchRename) {
+              BatchRenameScreen()
             }
           }
         }

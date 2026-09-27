@@ -9,7 +9,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import remix.myplayer.R
 import remix.myplayer.data.model.misc.Library
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.radioButtonColors
 import remix.myplayer.viewmodel.LibraryViewModel
 import remix.myplayer.viewmodel.libraryViewModel
 import remix.myplayer.viewmodel.settingViewModel
@@ -123,7 +123,7 @@ fun ScreenPopupButton(library: Library?, vm: LibraryViewModel = libraryViewModel
           ) {
             Text(stringResource(res), color = LocalTheme.current.textPrimary)
             RadioButton(
-              colors = RadioButtonDefaults.colors(selectedColor = LocalTheme.current.primary),
+              colors = LocalTheme.current.radioButtonColors(),
               selected = selectedIndex == index,
               onClick = { saveSortOrder(index) }
             )

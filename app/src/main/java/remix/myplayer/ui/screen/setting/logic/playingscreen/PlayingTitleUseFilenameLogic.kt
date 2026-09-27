@@ -1,4 +1,4 @@
-package remix.myplayer.ui.screen.setting.logic.common
+package remix.myplayer.ui.screen.setting.logic.playingscreen
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -9,22 +9,14 @@ import remix.myplayer.ui.screen.setting.SwitchPreference
 import remix.myplayer.viewmodel.settingViewModel
 
 @Composable
-fun FilenameDisplayLogic() {
+fun PlayingTitleUseFilenameLogic() {
   val settingVM = settingViewModel
   val settingState by settingVM.settingsState.collectAsStateWithLifecycle()
 
   SwitchPreference(
-    stringResource(R.string.bottom_bar_use_filename),
-    stringResource(R.string.bottom_bar_use_filename_tip),
-    settingState.common.useFilenameInBottomBar
-  ) {
-    settingVM.setBottomBarUseFilename(it)
-  }
-
-  SwitchPreference(
     stringResource(R.string.playing_title_use_filename),
     stringResource(R.string.playing_title_use_filename_tip),
-    settingState.common.useFilenameInPlayingTitle
+    settingState.playingScreen.playingTitleUseFilename
   ) {
     settingVM.setPlayingTitleUseFilename(it)
   }

@@ -29,6 +29,7 @@ import remix.myplayer.ui.dialog.NormalDialog
 import remix.myplayer.ui.dialog.rememberDialogState
 import remix.myplayer.ui.screen.setting.NormalPreference
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.checkboxColors
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.util.Util
 import remix.myplayer.util.ext.clickWithRipple
@@ -111,6 +112,7 @@ fun LibraryLogic() {
               CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                 Checkbox(
                   modifier = Modifier.padding(end = 8.dp),
+                  colors = LocalTheme.current.checkboxColors(),
                   checked = library.enable,
                   onCheckedChange = { checked ->
                     orderList = orderList.map {

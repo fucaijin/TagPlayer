@@ -30,6 +30,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import remix.myplayer.R
+import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.checkboxColors
+import remix.myplayer.ui.theme.radioButtonColors
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.util.ext.clickWithRipple
 
@@ -119,6 +122,7 @@ fun NormalDialog(
   // pinned to the bottom of the dialog, so long content never pushes buttons off the screen
   contentScrollable: Boolean = items == null && custom == null,
 ) {
+  val theme = LocalTheme.current
   BaseDialog(
     show = dialogState.isOpen,
     cancelOutside = cancelOutside,
@@ -191,6 +195,7 @@ fun NormalDialog(
                   CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                     RadioButton(
                       modifier = Modifier.padding(end = 8.dp),
+                      colors = theme.radioButtonColors(),
                       selected = itemsCallbackSingleChoice.selected == index,
                       onClick = {
                         if (autoDismiss) {
@@ -215,6 +220,7 @@ fun NormalDialog(
                   CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                     Checkbox(
                       modifier = Modifier.padding(end = 8.dp),
+                      colors = theme.checkboxColors(),
                       checked = checked,
                       onCheckedChange = {
                         itemsCallbackMultiChoice.onCheckChange(index, it)

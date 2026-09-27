@@ -6,6 +6,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import remix.myplayer.App
 import remix.myplayer.data.db.room.AppDatabase
@@ -14,6 +15,7 @@ import remix.myplayer.data.db.room.entity.TagEntity
 import remix.myplayer.data.model.audio.Song
 import remix.myplayer.helper.SongTagFile
 import remix.myplayer.misc.MediaScanner
+import remix.myplayer.util.MetaField
 import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
@@ -264,46 +266,161 @@ class SongTagRepository @Inject constructor(
     }.getOrNull()
   }
 
-  /** 将所有歌曲的标签导出为 JSON（path -> tags） */
-  suspend fun exportTagsJson(): String {
-    val map = allTagsByPath().mapValues { it.value.toList() }
-    return Json.encodeToString(map)
+  /**
+   * 导出标签为 JSON 字符串。
+   * - [ExportMode.FILENAME]：key 为文件名（去后缀），导入按文件名忽略大小写匹配；
+   * - [ExportMode.METADATA]：按 [fields]（默认 Title + Artist）写出每首歌的元数据与标签，
+   *   [fields] 同时写入文件头部，导入时按同样的字段匹配。
+   * 标签只与歌曲本身有关，与路径无关，故不再兼容旧版 path 格式。
+   */
+  suspend fun exportTagsJson(songs: List<Song>, mode: ExportMode, fields: List<MetaField> = listOf(MetaField.TITLE, MetaField.ARTIST)): String {
+    val allTags = allTagsByPath()
+    val localSongs = songs.filter { it.isLocal() && it.valid() }
+    val items = localSongs.map { song ->
+      val tags = (allTags[song.data] ?: emptySet()).toList()
+      when (mode) {
+        ExportMode.FILENAME -> TagExportItem(
+          key = File(song.data).nameWithoutExtension,
+          tags = tags
+        )
+        ExportMode.METADATA -> buildMetaItem(song, tags, fields)
+      }
+    }
+    val file = TagExportFile(
+      mode = mode.name.lowercase(),
+      fields = if (mode == ExportMode.METADATA) fields.map { it.token } else emptyList(),
+      exportedAt = System.currentTimeMillis(),
+      items = items
+    )
+    return TagJson.encodeToString(file)
   }
 
   /**
-   * 从 JSON 恢复标签：写回音频文件与缓存表，并记录导入统计。
-   * 仅当文件路径在当前设备存在时才写入（路径不存在计入 missing）。
+   * 从 JSON 恢复标签：按文件头部记录的 [TagExportFile.mode] 与 [TagExportFile.fields]
+   * 在本机曲库中匹配歌曲，写回音频文件与缓存表，并记录导入统计。
    */
-  suspend fun importTagsJson(json: String): TagImportSummary {
-    val map = runCatching { Json.decodeFromString<Map<String, List<String>>>(json) }
+  suspend fun importTagsJson(json: String, songs: List<Song>): TagImportSummary {
+    val file = runCatching { TagJson.decodeFromString<TagExportFile>(json) }
       .getOrElse { return TagImportSummary(0, 0, 0, error = it.message) }
+    if (file.mode.isBlank()) return TagImportSummary(0, 0, 0, error = "unknown mode")
+    val localSongs = songs.filter { it.isLocal() && it.valid() }
+    return when (file.mode) {
+      "filename" -> importByFilename(file, localSongs)
+      "metadata" -> importByMetadata(file, localSongs)
+      else -> TagImportSummary(0, 0, 0, error = "unknown mode: ${file.mode}")
+    }
+  }
+
+  private suspend fun importByFilename(file: TagExportFile, songs: List<Song>): TagImportSummary {
+    val index = songs.groupBy { File(it.data).nameWithoutExtension.lowercase() }
+    val missingItems = mutableListOf<String>()
+    val failedItems = mutableListOf<String>()
     var imported = 0
     var failed = 0
-    var missing = 0
-    withContext(Dispatchers.IO) {
-      map.forEach { (path, tags) ->
-        val file = File(path)
-        if (!file.exists()) {
-          missing++
-          return@forEach
+    file.items.forEach { item ->
+      val key = item.key?.trim().orEmpty()
+      if (key.isEmpty()) {
+        missingItems.add("<empty>")
+        return@forEach
+      }
+      val matched = index[key.lowercase()] ?: emptyList()
+      if (matched.isEmpty()) {
+        missingItems.add(key)
+        return@forEach
+      }
+      val tagSet = item.tags.filter { it.isNotBlank() }.toSet()
+      matched.forEach { song ->
+        if (writeTag(song, tagSet)) {
+          imported++
+        } else {
+          failed++
+          failedItems.add("$key (${File(song.data).name})")
         }
-        val tagSet = tags.filter { it.isNotBlank() }.toSet()
-        val ok = runCatching {
-          SongTagFile.writeTags(file, App.context.cacheDir, tagSet)
-          cacheDao.upsert(
-            SongTagCache(
-              path = path,
-              tags = tagSet.joinToString(SongTagFile.SEPARATOR),
-              updateTime = System.currentTimeMillis()
-            )
-          )
-          tagSet.forEach { addKnownTag(it) }
-        }.isSuccess
-        if (ok) imported++ else failed++
       }
     }
-    return TagImportSummary(imported, failed, missing)
+    return TagImportSummary(imported, failed, missingItems.size, missingItems = missingItems, failedItems = failedItems)
   }
+
+  private suspend fun importByMetadata(file: TagExportFile, songs: List<Song>): TagImportSummary {
+    val fields = file.fields.mapNotNull { MetaField.fromToken(it) }
+    if (fields.isEmpty()) return TagImportSummary(0, 0, 0, error = "missing match fields")
+    val missingItems = mutableListOf<String>()
+    val failedItems = mutableListOf<String>()
+    var imported = 0
+    var failed = 0
+    file.items.forEach { item ->
+      // 待匹配字段在条目中必须都有非空值，否则无法可靠匹配
+      val itemValues = fields.associateWith { f -> itemValue(item, f)?.trim().orEmpty() }
+      if (itemValues.values.any { it.isEmpty() }) {
+        missingItems.add(metaLabel(item, fields))
+        return@forEach
+      }
+      val target = itemValues.mapValues { it.value.lowercase() }
+      val matched = songs.filter { song ->
+        fields.all { f -> songValue(song, f).trim().lowercase() == target[f] }
+      }
+      if (matched.isEmpty()) {
+        missingItems.add(metaLabel(item, fields))
+        return@forEach
+      }
+      val tagSet = item.tags.filter { it.isNotBlank() }.toSet()
+      matched.forEach { song ->
+        if (writeTag(song, tagSet)) {
+          imported++
+        } else {
+          failed++
+          failedItems.add(metaLabel(item, fields))
+        }
+      }
+    }
+    return TagImportSummary(imported, failed, missingItems.size, missingItems = missingItems, failedItems = failedItems)
+  }
+
+  /** 将标签写回音频文件、更新缓存并把标签登记到标签表，返回是否成功 */
+  private suspend fun writeTag(song: Song, tagSet: Set<String>): Boolean = runCatching {
+    SongTagFile.writeTags(File(song.data), App.context.cacheDir, tagSet)
+    cacheDao.upsert(
+      SongTagCache(
+        path = song.data,
+        tags = tagSet.joinToString(SongTagFile.SEPARATOR),
+        updateTime = System.currentTimeMillis()
+      )
+    )
+    tagSet.forEach { addKnownTag(it) }
+  }.isSuccess
+
+  private fun buildMetaItem(song: Song, tags: List<String>, fields: List<MetaField>): TagExportItem {
+    var item = TagExportItem(tags = tags)
+    fields.forEach { f ->
+      item = when (f) {
+        MetaField.TITLE -> item.copy(title = song.title.trim())
+        MetaField.ARTIST -> item.copy(artist = song.artist.trim())
+        MetaField.ALBUM -> item.copy(album = song.album.trim())
+        MetaField.GENRE -> item.copy(genre = song.genre.trim())
+        else -> item
+      }
+    }
+    return item
+  }
+
+  private fun songValue(song: Song, field: MetaField): String = when (field) {
+    MetaField.TITLE -> song.title
+    MetaField.ARTIST -> song.artist
+    MetaField.ALBUM -> song.album
+    MetaField.GENRE -> song.genre
+    else -> ""
+  }
+
+  private fun itemValue(item: TagExportItem, field: MetaField): String? = when (field) {
+    MetaField.TITLE -> item.title
+    MetaField.ARTIST -> item.artist
+    MetaField.ALBUM -> item.album
+    MetaField.GENRE -> item.genre
+    else -> null
+  }
+
+  private fun metaLabel(item: TagExportItem, fields: List<MetaField>): String =
+    fields.joinToString(" / ") { f -> itemValue(item, f)?.trim().orEmpty() }
 
   companion object {
     /** 并行扫描线程数 */
@@ -326,10 +443,67 @@ private data class ScanDecision(
   val needScan: Boolean
 )
 
+/** 标签导出/导入的匹配方式 */
+enum class ExportMode {
+  /** 按文件名（不含后缀）匹配 */
+  FILENAME,
+  /** 按元数据字段匹配（字段列表见 [TagExportFile.fields]） */
+  METADATA
+}
+
+/** 歌曲标签导出文件结构：头部记录 mode 与 fields，导入时据此匹配 */
+@Serializable
+private data class TagExportItem(
+  val key: String? = null,
+  val title: String? = null,
+  val artist: String? = null,
+  val album: String? = null,
+  val genre: String? = null,
+  val tags: List<String> = emptyList()
+)
+
+@Serializable
+private data class TagExportFile(
+  val format: String = FORMAT_TAG,
+  val version: Int = 1,
+  val mode: String = "",
+  val fields: List<String> = emptyList(),
+  val exportedAt: Long = 0,
+  val items: List<TagExportItem> = emptyList()
+)
+
+private const val FORMAT_TAG = "TagPlayer/SongTags"
+
+/** 专用于标签导出/导入的 JSON 配置：美化输出、容忍未知字段 */
+private val TagJson = Json {
+  prettyPrint = true
+  ignoreUnknownKeys = true
+}
+
 /** 标签导入结果统计 */
 data class TagImportSummary(
   val imported: Int,
   val failed: Int,
   val missing: Int,
-  val error: String? = null
-)
+  val error: String? = null,
+  val missingItems: List<String> = emptyList(),
+  val failedItems: List<String> = emptyList()
+) {
+  /** 生成可复制的文本报告（成功/失败/未匹配 与逐条明细） */
+  fun reportText(): String {
+    val sb = StringBuilder()
+    sb.appendLine("TagPlayer 标签导入结果")
+    sb.appendLine("成功: $imported    失败: $failed    未匹配: $missing")
+    if (failedItems.isNotEmpty()) {
+      sb.appendLine()
+      sb.appendLine("【写入失败的条目】")
+      failedItems.forEach { sb.appendLine("· $it") }
+    }
+    if (missingItems.isNotEmpty()) {
+      sb.appendLine()
+      sb.appendLine("【未匹配的条目】")
+      missingItems.forEach { sb.appendLine("· $it") }
+    }
+    return sb.toString().trimEnd()
+  }
+}

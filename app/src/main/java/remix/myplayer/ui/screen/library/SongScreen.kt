@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.SharedFlow
 import remix.myplayer.R
 import remix.myplayer.data.model.misc.TagFilterMode
+import remix.myplayer.data.model.misc.TagFixedSortMode
 import remix.myplayer.service.Command
 import remix.myplayer.service.MusicService
 import remix.myplayer.service.MusicServiceRemote.setPlayQueue
@@ -62,7 +63,8 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
   val multiSelectState by mainVM.multiSelectState.collectAsStateWithLifecycle()
   val settingState by settingVM.settingsState.collectAsStateWithLifecycle()
   val songTags by libraryVM.songTags.collectAsStateWithLifecycle()
-  val allTags by libraryVM.allTags.collectAsStateWithLifecycle()
+  // 已按设置排序的标签（智能排序 / 固定位置：创建时间正序、倒序、首字母），用于标签过滤区
+  val orderedTags by libraryVM.orderedTags.collectAsStateWithLifecycle()
   val listState = rememberLazyListState()
   val songs by libraryVM.songs.collectAsStateWithLifecycle()
   val context = LocalContext.current
@@ -204,7 +206,9 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
     // 过滤区展开时显示在头部行下方
     if (filterExpanded) {
       TagFilterPanel(
-        allTags = allTags + noTagLabel,
+        allTags = orderedTags + noTagLabel,
+        aesthetic = settingState.tag.fixedSortMode == TagFixedSortMode.AESTHETIC,
+        edgeAlign = settingState.tag.edgeAlign,
         mode = filterMode,
         includedTags = includedFilterTags,
         excludedTags = excludedFilterTags,

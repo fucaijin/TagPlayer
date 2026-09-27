@@ -44,6 +44,7 @@ import remix.myplayer.ui.nav.LocalNavController
 import remix.myplayer.ui.nav.MessageNotifier
 import remix.myplayer.ui.theme.APlayerTheme
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.theme.checkboxColors
 import remix.myplayer.ui.widget.common.TextPrimary
 import remix.myplayer.ui.widget.common.TextSecondary
 import remix.myplayer.ui.widget.library.GlideCover
@@ -190,6 +191,7 @@ private fun ListSong(song: Song, checked: Boolean, onCheckedChange: (Boolean) ->
 
     Checkbox(
       modifier = Modifier.padding(horizontal = 16.dp),
+      colors = LocalTheme.current.checkboxColors(),
       checked = checked,
       onCheckedChange = onCheckedChange
     )

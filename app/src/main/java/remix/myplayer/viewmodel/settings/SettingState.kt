@@ -3,6 +3,7 @@ package remix.myplayer.viewmodel.settings
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
 import remix.myplayer.data.model.misc.LyricOrder
+import remix.myplayer.data.model.misc.TagFixedSortMode
 import remix.myplayer.ui.screen.playing.PlayingCoverAnimationStyle
 
 @Stable
@@ -15,11 +16,6 @@ data class CommonSettings(
   val language: Int,
   val uiFontScale: Float,
   val shake: Boolean,
-  val showDisplayName: Boolean,
-  /** 歌曲列表底部栏的歌名是否使用文件名（而非元数据歌名） */
-  val useFilenameInBottomBar: Boolean,
-  /** 播放页顶部标题是否使用文件名（而非元数据歌名） */
-  val useFilenameInPlayingTitle: Boolean,
 )
 
 @Stable
@@ -75,6 +71,12 @@ data class PlayingScreenSettings(
   val background: Int,
   val bottom: Int,
   val keepScreenOn: Boolean,
+  /** 播放页顶部标题是否显示文件名（而非元数据歌名） */
+  val playingTitleUseFilename: Boolean,
+  /** 播放页标题的歌名下方是否显示该歌曲的标签 */
+  val playingTitleShowTag: Boolean,
+  /** 播放页标题的歌名下方是否显示艺术家-专辑名 */
+  val playingTitleShowArtistAlbum: Boolean,
 )
 
 @Stable
@@ -105,8 +107,6 @@ data class NotificationSettings(
 data class ListSettings(
   /** 列表条目标签显示 */
   val showTag: Boolean,
-  /** 批量重命名默认模板（占位符：{title}{artist}{album}{track}{year}） */
-  val defaultRenameTemplate: String = "{artist} - {title}",
   /** 列表条目标签管理（五角星按钮） */
   val tagManage: Boolean,
   /** 是否显示"音乐标签编辑"入口（列表条目菜单/播放页菜单） */
@@ -115,22 +115,24 @@ data class ListSettings(
   val showNumber: Boolean,
   /** 显示艺术家-专辑名 */
   val showArtistAlbum: Boolean,
+  /** 歌曲列表条目的歌名是否显示文件名（而非元数据歌名） */
+  val showDisplayName: Boolean,
+  /** 歌曲列表底部栏的歌名是否显示文件名（而非元数据歌名） */
+  val bottomBarUseFilename: Boolean,
   /** 歌曲列表底部栏的歌名下方是否显示该歌曲的标签 */
   val bottomBarShowTag: Boolean,
-  /** 播放页标题的歌名下方是否显示该歌曲的标签 */
-  val playingTitleShowTag: Boolean,
   /** 歌曲列表底部栏的歌名下方是否显示艺术家-专辑名 */
   val bottomBarShowArtistAlbum: Boolean,
-  /** 播放页标题的歌名下方是否显示艺术家-专辑名 */
-  val playingTitleShowArtistAlbum: Boolean,
 )
 
 @Stable
 data class TagSettings(
-  /** 标签弹窗是否智能排序（最近使用时间 + 使用次数），否则按创建时间固定排列 */
+  /** 标签弹窗是否智能排序（最近使用时间 + 使用次数），否则按固定位置排列 */
   val smartSort: Boolean,
-  /** 固定位置排序时是否按标签创建时间倒序（新创建的在前） */
-  val createdDesc: Boolean,
+  /** 固定位置排序模式：创建时间正序 / 创建时间倒序 / 首字母 / 美观紧凑（FFD 装箱） */
+  val fixedSortMode: TagFixedSortMode,
+  /** 标签展示是否两端对齐（每行首尾贴父容器左右边，其余平均分配剩余宽度），与排序模式无关 */
+  val edgeAlign: Boolean,
 )
 
 @Stable

@@ -78,7 +78,7 @@ internal fun PlayingTopBar(song: Song, swatch: Palette.Swatch) {
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      val title = if (settingState.common.useFilenameInPlayingTitle) {
+      val title = if (settingState.playingScreen.playingTitleUseFilename) {
         File(song.data).nameWithoutExtension
       } else {
         song.title
@@ -89,7 +89,7 @@ internal fun PlayingTopBar(song: Song, swatch: Palette.Swatch) {
         fontSize = 16.sp,
         maxLines = 1
       )
-      if (settingState.list.playingTitleShowArtistAlbum && song.artistAlbum.isNotEmpty()) {
+      if (settingState.playingScreen.playingTitleShowArtistAlbum && song.artistAlbum.isNotEmpty()) {
         Text(
           song.artistAlbum,
           color = bodyColor,
@@ -98,7 +98,7 @@ internal fun PlayingTopBar(song: Song, swatch: Palette.Swatch) {
           textAlign = TextAlign.Center
         )
       }
-      if (settingState.list.playingTitleShowTag) {
+      if (settingState.playingScreen.playingTitleShowTag) {
         val tags = songTags[song.data].orEmpty()
         if (tags.isNotEmpty()) {
           Text(

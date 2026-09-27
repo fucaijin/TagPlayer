@@ -35,6 +35,8 @@ import remix.myplayer.R
 import remix.myplayer.data.db.room.entity.PlayList
 import remix.myplayer.data.model.audio.APlayerModel
 import remix.myplayer.ui.theme.LocalTheme
+import remix.myplayer.ui.nav.LocalNavController
+import remix.myplayer.ui.nav.RouteBatchRename
 import remix.myplayer.viewmodel.MultiSelectState
 import remix.myplayer.viewmodel.libraryViewModel
 import remix.myplayer.viewmodel.mainViewModel
@@ -53,6 +55,7 @@ fun MultiSelectBar(
   val mainVM = mainViewModel
   val settingVM = settingViewModel
   val playbackVM = playbackViewModel
+  val nav = LocalNavController.current
   val theme = LocalTheme.current
   val tintColor = if (theme.isPrimaryLight) Color.Black else Color.White
   val scope = rememberCoroutineScope()
@@ -118,10 +121,10 @@ fun MultiSelectBar(
         }
       }
 
-      // 批量重命名（按模板重命名选中的本地歌曲文件）
+      // 批量修改（按模板重命名选中的本地歌曲文件）
       TooltipButton(
         icon = rememberVectorPainter(Icons.Filled.Edit),
-        text = stringResource(R.string.batch_rename),
+        text = stringResource(R.string.batch_modify),
         tintColor = tintColor,
         onClick = {
           scope.launch {
@@ -129,7 +132,8 @@ fun MultiSelectBar(
             val songs =
               withContext(Dispatchers.IO) { libraryVM.loadSongsByModels(state.selectedModels) }
             if (songs.isNotEmpty()) {
-              libraryVM.showBatchRenameDialog(songs)
+              libraryVM.showBatchRename(songs)
+              nav.navigate(RouteBatchRename)
             }
           }
         }
@@ -231,7 +235,7 @@ private fun TooltipButton(
   }
 }
 
-/** 以矢量图标 + 文案显示的tooltip按钮（用于无对应 drawable 资源的操作，如批量重命名） */
+/** 以矢量图标 + 文案显示的tooltip按钮（用于无对应 drawable 资源的操作，如批量修改） */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TooltipButton(

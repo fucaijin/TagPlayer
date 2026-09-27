@@ -51,7 +51,8 @@ fun TextSecondary(
   maxLine: Int = 1,
   overflow: TextOverflow = TextOverflow.Ellipsis,
   textAlign: TextAlign? = TextAlign.Unspecified,
-  fontWeight: FontWeight = FontWeight.Normal
+  fontWeight: FontWeight = FontWeight.Normal,
+  color: Color = LocalTheme.current.textSecondary,
 ) {
   Text(
     text = text,
@@ -63,7 +64,7 @@ fun TextSecondary(
       fontWeight = fontWeight,
     ),
     maxLines = maxLine,
-    color = LocalTheme.current.textSecondary,
+    color = color,
     overflow = overflow,
   )
 }

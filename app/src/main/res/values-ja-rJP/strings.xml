@@ -565,4 +565,76 @@
     <string name="title_dynamic_smb">SMB クライアント</string>
   <string name="select_image">画像を選択</string>
   <string name="clear_cover">カバーを削除</string>
+
+  <!-- タグのエクスポート / インポート -->
+  <string name="tag_export_filename">エクスポート（ファイル名 - タグ）</string>
+  <string name="tag_export_filename_tip">各曲のタグを JSON でバックアップし、ファイル名（拡張子を除く）で照合します</string>
+  <string name="tag_export_metadata">エクスポート（メタデータ - タグ）</string>
+  <string name="tag_export_metadata_tip">各曲のタグを JSON でバックアップし、メタデータで照合します</string>
+  <string name="tag_export_metadata_fields">照合に使うメタデータ項目</string>
+  <string name="tag_export_metadata_fields_hint">初期値：タイトル + アーティスト。同じ曲を判別する項目を選択します。</string>
+  <string name="tag_export_metadata_fields_empty">少なくとも 1 つの項目を選択してください</string>
+  <string name="tag_import_result_title">インポート結果</string>
+  <string name="tag_import_failed_list">書き込みに失敗した項目</string>
+  <string name="tag_import_missing_list">一致しなかった項目</string>
+  <string name="tag_import_copy">コピー</string>
+  <string name="tag_import_copied">クリップボードにコピーしました</string>
+
+  <!-- タグの並び順 / 両端揃え -->
+  <string name="tag_sort_alpha">タグの先頭文字</string>
+  <string name="tag_sort_aesthetic">見た目重視（できるだけ詰める）</string>
+  <string name="tag_edge_align">タグの両端揃え</string>
+  <string name="tag_edge_align_tip">オンにすると各行の先頭と末尾のタグがコンテナの左右端に揃い、残りのタグが余った幅を均等に分けます。最後の行が最もタグ数の少ない行の場合はその行には適用せず（左揃えのまま）、タグが大きく引き離されるのを防ぎます。並び順の設定とは関係なく動作します。</string>
+
+  <!-- 一括変更 -->
+  <string name="batch_modify">一括変更</string>
+  <string name="batch_rename_mode_meta">メタデータからファイル名を変更</string>
+  <string name="batch_rename_mode_file">ファイル名からタグを書き込み</string>
+  <string name="batch_rename_mode_meta_hint">書式：{フィールド} で指定します。例：{Artist} - {Title}。プレースホルダーは大文字と小文字を区別せず、未知のものはそのまま残ります。対応フィールド：%1$s。拡張子はそのまま保持され、必要なメタデータが無い行は赤く表示されます。</string>
+  <string name="batch_rename_mode_file_hint">抽出ルール：{フィールド} で指定します。例：{Artist} - {Title}。フィールド間の文字列は区切り文字（または正規表現）として扱われ、ファイル名から解析した値が該当するメタデータに書き込まれます。対応フィールド：%1$s。</string>
+  <string name="batch_rename_old_name">変更前のファイル名</string>
+  <string name="batch_rename_new_name">新しいファイル名</string>
+  <string name="batch_rename_filename">ファイル名</string>
+  <string name="batch_rename_legend_nochange">変更なし</string>
+  <string name="batch_rename_legend_ok">有効</string>
+  <string name="batch_rename_legend_bad">未設定/空</string>
+  <string name="batch_rename_save">保存</string>
+  <string name="batch_rename_cancel_save">キャンセル</string>
+  <string name="batch_rename_undo">元に戻す</string>
+  <string name="batch_rename_done">完了</string>
+  <string name="batch_rename_saving">保存中…</string>
+  <string name="batch_rename_done_title">完了</string>
+  <string name="batch_rename_result">成功 %1$d、失敗 %2$d、スキップ %3$d</string>
+  <string name="batch_rename_loading">ファイル情報を読み込み中…</string>
+  <string name="batch_rename_empty">選択できる曲がありません</string>
+  <string name="batch_rename_no_field">ルールに認識できるフィールドがありません（例：{Title}）</string>
+  <string name="batch_rename_undo_done">直前の操作を元に戻しました</string>
+  <string name="batch_rename_export_log">保存ログを書き出し</string>
+  <string name="batch_rename_export_full_log">全ログを書き出し</string>
+  <string name="batch_rename_log_exported">保存ログを書き出しました</string>
+  <string name="batch_rename_log_export_failed">保存ログの書き出しに失敗しました</string>
+  <string name="batch_rename_show_detail">失敗理由を表示</string>
+  <string name="batch_rename_hide_detail">閉じる</string>
+  <string name="batch_rename_fail_count">%1$d 件が失敗しました</string>
+  <string name="batch_rename_fail_reason">理由</string>
+  <string name="batch_rename_fail_not_local">ローカルファイルではないため変更できません</string>
+  <string name="batch_rename_fail_src_missing">元のファイルが存在しないか、アクセスできません</string>
+  <string name="batch_rename_fail_target_exists">同名のファイルが既に存在します</string>
+  <string name="batch_rename_fail_rename_failed">名前の変更に失敗しました（書き込み権限がない、または別のストレージ領域への移動）</string>
+  <string name="batch_rename_fail_write_tag_failed">タグの書き込みに失敗しました</string>
+  <string name="batch_rename_fail_exception">保存中にエラーが発生しました</string>
+  <string name="batch_rename_mode_manual">手動でファイル名を変更</string>
+  <string name="batch_rename_mode_meta_edit">手動でメタデータを変更</string>
+  <string name="batch_rename_copy">コピー</string>
+  <string name="batch_rename_clear">クリア</string>
+  <string name="batch_rename_copied">元のファイル名をコピーしました</string>
+  <string name="batch_rename_select_columns">変更する列を選択（ファイル名は表示のみで変更できません）</string>
+
+  <!-- 使い方 -->
+  <string name="usage_clear_search_title">検索履歴を消去</string>
+  <string name="usage_clear_search_desc">次の手順で検索キーワードをすべて削除できます：\n設定 -> その他 -> 検索履歴を消去\n確認ダイアログで「確認」をタップすると、検索履歴がすべて消去されます。</string>
+  <string name="usage_tag_export_import_title">タグのエクスポートとインポート</string>
+  <string name="usage_tag_export_import_desc">「設定 -> タグ管理」で曲のタグをエクスポート/インポートできます：\nエクスポートには 2 つの方式があります：\n・ファイル名 - タグ：ファイル名（拡張子を除く）で照合します。同じ曲を別の端末やフォルダーに移した後にタグを復元するのに向いています。\n・メタデータ - タグ：曲のメタデータ（既定は「タイトル + アーティスト」、追加で「アルバム」「ジャンル」も選択可）で照合します。ファイル名やパスに影響されません。\nエクスポートしたファイルには方式が記録され、インポート時はその方式に従ってローカルのライブラリから自動的に曲を照合し、一致した曲にタグを付けます。\nインポート完了後は結果リストが表示され、書き込みに失敗した項目と一致しなかった項目を一覧で確認でき、ワンタップでコピーできます。</string>
+  <string name="usage_batch_rename_title">一括変更</string>
+  <string name="usage_batch_rename_desc">曲リストで曲を複数選択し、「一括変更」を使うと選択したファイルをまとめて操作できます。ダイアログ上部で 4 つのモードを切り替えられます：\nモード1（メタデータからファイル名を変更）：上部で命名書式を指定します。例：{Artist}-{Title}。各曲のメタデータから新しいファイル名を生成します（拡張子は変わりません）。テーブルには「メタデータ列 / 変更前のファイル名 / 新しいファイル名」が表示され、変更ありは緑、変更なしは灰色、必要なメタデータが無い場合は赤（手動で入力すると緑）になります。\nモード2（ファイル名からタグを書き込み）：上部で抽出ルールを指定します（正規表現も可。例：{Artist}-{Title}）。ファイル名から情報を抽出して該当するメタデータに書き込みます。テーブルには「ファイル名 / 各メタデータ列」が表示され、元の値と同じは灰色、入力済みは緑、空欄は赤（タイトルは空にできず、空の場合は保存できません）。\nモード3（手動でファイル名を変更）：2 列のテーブルで、変更前のファイル名（コピーボタン付き）と新しいファイル名（初期値は元の名前、編集可、クリアボタン付き）を表示します。変更ありは緑、変更なしは灰色です。\nモード4（手動でメタデータを変更）：上部で変更する列を選択します（ファイル名は表示のみで変更できません）。各セルを編集でき、クリアボタンもあります。「タイトル」を選択した場合は空にできません（空の場合は保存できません）。\n保存時はプログレスバーが表示され、いつでもキャンセルできます。操作前の情報が記録されるため、後からファイル操作をまとめて元に戻せます。上部の「元に戻す」はこの画面で入力を間違えたセルを取り消すためのもので、画面を閉じると無効になります。</string>
 </resources>
