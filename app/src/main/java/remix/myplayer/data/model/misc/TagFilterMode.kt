@@ -10,13 +10,15 @@ import remix.myplayer.R
  * - [INCLUDE_OR]  包含或：歌曲标签包含左侧任意一个标签即可
  * - [EXCLUDE]     互斥：过滤区分为"包含/排除"左右两半，每侧可单独切换"与/或"
  * - [EXACT]       全匹配：歌曲标签须与选中的标签完全一致（不多不少）
+ * - [ONLY]        或匹配：歌曲只能带选中标签中的一个或多个，不能带选中之外的标签
  */
 enum class TagFilterMode(@get:StringRes val labelRes: Int) {
 
   INCLUDE_AND(R.string.tag_mode_include_and),
   INCLUDE_OR(R.string.tag_mode_include_or),
   EXCLUDE(R.string.tag_mode_exclusive),
-  EXACT(R.string.tag_mode_exact);
+  EXACT(R.string.tag_mode_exact),
+  ONLY(R.string.tag_mode_only);
 
   /** 互斥模式：过滤区分为"包含/排除"左右两半，每侧可单独切换"与/或" */
   val isExclusive: Boolean

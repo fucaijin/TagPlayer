@@ -68,6 +68,7 @@
   <string name="tag_mode_exclusive_or">互斥或</string>
   <string name="tag_mode_exact">全匹配</string>
   <string name="tag_mode_exclusive">互斥</string>
+  <string name="tag_mode_only">或匹配</string>
   <string name="tag_filter_include">包含</string>
   <string name="tag_filter_exclude">排除</string>
   <string name="tag_filter_and">与</string>
@@ -153,6 +154,7 @@
   <string name="stats_daily_active">每日最早/最晚听歌</string>
   <string name="stats_earliest">最早</string>
   <string name="stats_latest">最晚</string>
+  <string name="stats_next_day">次日</string>
   <string name="stats_tag_song_count">标签歌曲数量</string>
   <string name="stats_favorite_tags">最常播放的标签</string>
   <string name="stats_search_ranking">搜索关键词排行</string>
@@ -282,7 +284,7 @@
   <string name="feedback_contact_hint">请输入您的微信号/QQ号</string>
   <string name="lrc_choose">选择歌词来源</string>
   <string name="song_detail">歌曲详情</string>
-  <string name="song_edit">音乐元数据编辑</string>
+  <string name="song_edit">编辑元数据</string>
   <string name="edit_tags">编辑标签</string>
   <string name="common">常规</string>
   <string name="setting_common_desc">常规功能、扫描与语言</string>
@@ -368,6 +370,7 @@
   <string name="song_path">歌曲路径:</string>
   <string name="song_name">歌曲名:</string>
   <string name="song_name_conflict">当前目录下已存在同名文件</string>
+  <string name="song_name_unsaved_confirm">修改尚未保存，确定要关闭吗？</string>
   <string name="file_size">文件大小:</string>
   <string name="format">格式:</string>
   <string name="length">长度:</string>
@@ -583,15 +586,15 @@
   <string name="list_show_tag_tip">在歌曲列表条目底部显示该歌曲的标签</string>
   <string name="list_tag_manage">列表条目标签管理</string>
   <string name="list_tag_manage_tip">在歌曲列表条目右侧显示五角星按钮，用于管理该歌曲的标签</string>
-  <string name="list_tag_edit">显示\"音乐元数据编辑\"入口</string>
-  <string name="list_tag_edit_tip">在歌曲列表条目与播放页的更多菜单中显示\"音乐元数据编辑\"选项</string>
+  <string name="list_tag_edit">显示\"编辑元数据\"入口</string>
+  <string name="list_tag_edit_tip">在歌曲列表条目与播放页的更多菜单中显示\"编辑元数据\"选项</string>
   <string name="bottom_bar_use_filename">底部栏显示歌曲文件名</string>
   <string name="bottom_bar_use_filename_tip">歌曲列表底部栏显示文件名（不含扩展名），而非元数据中的歌名</string>
   <string name="bottom_bar_show_tag">底部栏显示标签</string>
   <string name="bottom_bar_show_tag_tip">在歌曲列表底部栏的歌名下方显示该歌曲的标签</string>
   <string name="playing_title_use_filename">播放页标题显示歌曲文件名</string>
   <string name="playing_title_use_filename_tip">播放页顶部标题显示文件名（不含扩展名），而非元数据中的歌名</string>
-  <string name="song_sort_rules">歌曲列表排序规则</string>
+  <string name="song_sort_rules">歌曲列表排序项-显示/隐藏</string>
   <string name="song_sort_rules_tip">自定义歌曲列表排序菜单中显示的排序方式（至少保留 1 项）</string>
   <string name="stats_modules">显示模块</string>
   <string name="stats_module_rows">列表显示行数</string>
@@ -617,6 +620,8 @@
   <string name="setting_tag_desc">标签弹窗中的标签排序方式，以及歌曲标签的导出与导入</string>
   <string name="tag_smart_sort">智能排序</string>
   <string name="tag_smart_sort_tip">开启后按标签的最后使用时间与历史使用次数排序；关闭后按标签创建时间固定排列</string>
+  <string name="tag_filter_show_modes">标签过滤模式</string>
+  <string name="tag_filter_show_modes_tip">自定义歌曲列表标签过滤区下拉列表中显示的过滤模式（至少保留 1 项）</string>
   <string name="tag_fixed_sort">固定位置排序</string>
   <string name="tag_sort_created_asc">创建时间正序（早→晚）</string>
   <string name="tag_sort_created_desc">创建时间倒序（晚→早）</string>
@@ -845,7 +850,7 @@
   <string name="usage_locate_playing_title">定位到播放歌曲</string>
   <string name="usage_locate_playing_desc">在「主页」的「歌曲」标签页上，双击该标签，列表会自动滚动并定位到当前正在播放的歌曲。</string>
   <string name="usage_tag_filter_title">标签过滤模式</string>
-  <string name="usage_tag_filter_desc">歌曲列表顶部的标签过滤区域，下拉列表用于选择过滤模式：\n包含与：只有设置了所选择的所有标签的歌曲，才会被过滤出来。\n包含或：只要歌曲设置了所选择的某个标签，就会被过滤出来。\n互斥：分为左右两侧，先由左侧标签过滤出歌曲，再用右侧标签把匹配的歌曲排除掉。\n全匹配：有且只有设置了所选择的标签（不多不少）的歌曲，才会被筛选出来。</string>
+  <string name="usage_tag_filter_desc">歌曲列表顶部的标签过滤区域，下拉列表用于选择过滤模式：\n包含与：只有设置了所选择的所有标签的歌曲，才会被过滤出来。\n包含或：只要歌曲设置了所选择的某个标签，就会被过滤出来。\n互斥：分为左右两侧，先由左侧标签过滤出歌曲，再用右侧标签把匹配的歌曲排除掉。\n全匹配：有且只有设置了所选择的标签（不多不少）的歌曲，才会被筛选出来。\n或匹配：只有设置了所选择标签中一个或多个、且没有设置所选择之外标签的歌曲，才会被筛选出来。</string>
   <string name="usage_clear_search_title">清空搜索记录</string>
   <string name="usage_clear_search_desc">按以下步骤删除全部搜索关键词：\n设置 -> 其他 -> 清空搜索记录\n在弹出的确认框中点击「确认」，即可清空全部搜索记录。</string>
   <string name="usage_tag_export_import_title">标签导出与导入</string>
@@ -855,4 +860,20 @@
   <string name="usage_batch_rename_desc">在歌曲列表中多选歌曲后，通过「批量修改」可对所选文件进行批量操作，弹窗顶部可切换四种模式：\n模式一（按元数据改名）：在顶部设置命名格式，如 {Artist}-{Title}，将用每首歌对应的元数据生成新文件名（不改变后缀）。表格展示「元数据列 / 原文件名 / 新文件名」；有变更显示绿色、无变更灰色、所需元数据缺失显示红色（手动补全后变绿）。\n模式二（按文件名写标签）：在顶部设置提取规则（支持正则，如 {Artist}-{Title}），从文件名提取信息写入对应元数据。表格展示「文件名 / 各元数据列」；与原值一致灰色、已填入绿色、空白红色（歌曲名/标题不可为空，否则禁止保存）。\n模式三（手动改名）：两列表格——原文件名（带「复制」按钮）与新文件名（默认回填原名、可手动修改、带「清空」按钮）；有变更显示绿色、无变更灰色。\n模式四（手动改元数据）：顶部勾选要修改的列（文件名仅展示、不可改）；每行每列可手动编辑并带「清空」按钮；选中「歌曲名/标题」时不可为空（空则禁止保存）。\n保存时显示进度条，可随时取消；操作前会记录原信息，完成后可一键「撤销（回退）」文件操作。页面顶部的「撤销」用于回退本次会话中手动填错的单元格，关闭页面即失效。</string>
 
   <string name="stats_trend_unit">分钟/天</string>
+  <string name="close_desktop_lyrics">关闭桌面歌词</string>
+  <string name="lock_desktop_lyrics">锁定桌面歌词</string>
+  <string name="desktop_lyrics_settings">桌面歌词显示/隐藏设置</string>
+  <string name="desktop_lyrics_color">设置桌面歌词颜色</string>
+  <string name="desktop_lyrics_text_example">这是歌词文字</string>
+  <string name="desktop_lyrics_translation_example">这是翻译</string>
+  <string name="desktop_lyrics_active_text_color">当前行文字颜色</string>
+  <string name="desktop_lyrics_inactive_text_color">非当前行文字颜色</string>
+  <string name="desktop_lyrics_translation_text_color">翻译文字颜色</string>
+  <string name="play_from_this_line">从这句开始播放</string>
+  <string name="domain">域名</string>
+  <string name="go_to_setting">前往设置</string>
+  <string name="need_manage_storage_title">需要存储权限</string>
+  <string name="need_manage_storage_content">修改音乐文件标签需要「所有文件访问」权限，请在系统设置中开启。</string>
+  <string name="smb">SMB</string>
+  <string name="tab_smb">SMB</string>
 </resources>

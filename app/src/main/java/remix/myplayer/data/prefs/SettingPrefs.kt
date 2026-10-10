@@ -215,6 +215,13 @@ class SettingPrefs @Inject constructor(
     TagFilterMode.INCLUDE_AND.name
   )
 
+  /** 标签过滤区下拉列表中隐藏的过滤模式（TagFilterMode.name 集合），为空表示全部显示 */
+  var tagFilterHiddenModes by PrefsDelegate(
+    sp,
+    PrefKeys.Setting.TAG_FILTER_HIDDEN_MODES,
+    emptySet<String>()
+  )
+
   /** 互斥模式下左侧"包含"侧是否按"与"过滤（同时带所有选中标签），否则按"或" */
   var tagFilterExcludeIncludeAnd by PrefsDelegate(
     sp,

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.LazyColumn
@@ -324,13 +326,21 @@ fun DataAnalysisReport(modifier: Modifier = Modifier) {
             ActiveSortBy.EARLIEST -> state.activeList.sortedBy { it.earliest }
             ActiveSortBy.LATEST -> state.activeList.sortedBy { it.latest }
           }.let { if (state.activeDesc) it.asReversed() else it }
+          val nextDayPrefix = stringResource(R.string.stats_next_day)
           ranked.take(rows(AnalysisModule.DAILY_ACTIVE)).forEach { day ->
+            val label = StatsTimeUtil.formatDay(day.dayBucket, state.dayStartHour)
+            // 行的日期按“一天分界点”所在日期计算；时间点若已跨到次日，加“次日”前缀，避免看起来比“最早”还早
+            val labelDayKey =
+              StatsTimeUtil.formatYyyyMMdd(StatsTimeUtil.bucketStartTime(day.dayBucket, state.dayStartHour))
+            fun formatActive(time: Long?): String = when {
+              time == null -> "-"
+              StatsTimeUtil.formatYyyyMMdd(time) != labelDayKey -> nextDayPrefix + StatsTimeUtil.formatTime(time)
+              else -> StatsTimeUtil.formatTime(time)
+            }
             StatItem(
-              StatsTimeUtil.formatDay(day.dayBucket, state.dayStartHour),
-              stringResource(R.string.stats_earliest) + " " +
-                  (day.earliest?.let { StatsTimeUtil.formatTime(it) } ?: "-") + "   " +
-                  stringResource(R.string.stats_latest) + " " +
-                  (day.latest?.let { StatsTimeUtil.formatTime(it) } ?: "-")
+              label,
+              stringResource(R.string.stats_earliest) + " " + formatActive(day.earliest) + "   " +
+                  stringResource(R.string.stats_latest) + " " + formatActive(day.latest)
             )
           }
         }
@@ -1067,63 +1077,69 @@ private fun SongRankingCard(
   }
 }
 
-/** 每日播放时长条形图（取最近若干天，横向滚动）。点击高亮并显示完整日期与数值。 */
+/** 每日播放时长条形图（取最近若干天，横向滚动）。
+ *  点击某条即轻微提亮该条（其余条与普通高亮色一致），并在该条顶端显示当天时长；再次点击取消。 */
 @Composable
 private fun DailyDurationChart(days: List<DayPlayStat>, dayStartHour: Int) {
   val theme = LocalTheme.current
   val data = days.take(30).reversed()
   val max = data.maxOfOrNull { it.playedMs }?.coerceAtLeast(1L) ?: 1L
-  var selectedIndex by remember { mutableStateOf<Int?>(null) }
-  // 横坐标过于密集，隔一个条形显示一个 MMdd 标签；其余点击后在下文显示完整时间
+  var selectedBucket by remember { mutableStateOf<Long?>(null) }
+  val selectedIndex = data.indexOfFirst { it.dayBucket == selectedBucket }.takeIf { it >= 0 }
+  // 未选中条与当前高亮色相同，选中条在其基础上略微提亮即可看出差异
+  val baseColor = theme.primary
+  val highlightColor = baseColor.copy(
+    red = (baseColor.red * 1.1f).coerceAtMost(1f),
+    green = (baseColor.green * 1.1f).coerceAtMost(1f),
+    blue = (baseColor.blue * 1.1f).coerceAtMost(1f)
+  )
+  // 横坐标过于密集，隔一个条形显示一个 MMdd 标签
 
-  Column {
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .horizontalScroll(rememberScrollState())
-        .padding(bottom = 6.dp),
-      verticalAlignment = Alignment.Bottom,
-      horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-      data.forEachIndexed { index, day ->
-        val selected = selectedIndex == index
-        Column(
-          horizontalAlignment = Alignment.CenterHorizontally,
-          modifier = Modifier.width(18.dp)
-        ) {
-          Box(
-            modifier = Modifier
-              .width(12.dp)
-              .height((4 + 56 * (day.playedMs.toFloat() / max)).dp)
-              .clip(RoundedCornerShape(3.dp))
-              .background(if (selected) theme.primary else theme.secondary)
-              .clickWithRipple {
-                selectedIndex = if (selectedIndex == index) null else index
-              }
-          )
-          val showLabel = index % 2 == 0
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .horizontalScroll(rememberScrollState())
+      .padding(bottom = 6.dp),
+    verticalAlignment = Alignment.Bottom,
+    horizontalArrangement = Arrangement.spacedBy(4.dp)
+  ) {
+    data.forEachIndexed { index, day ->
+      val selected = selectedIndex == index
+      Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(18.dp)
+      ) {
+        if (selected) {
+          // 时长显示在该条顶端；列宽固定 18dp，用 requiredWidth 按文字自身宽度布局并居中溢出，避免折行截断
           TextSecondary(
-            if (showLabel) {
-              StatsTimeUtil.formatDayMmdd(day.dayBucket, dayStartHour)
-            } else {
-              ""
-            },
-            fontSize = 8.sp,
-            modifier = Modifier.padding(top = 2.dp)
+            StatsTimeUtil.formatDuration(day.playedMs),
+            fontSize = 9.sp,
+            color = highlightColor,
+            modifier = Modifier
+              .requiredWidth(IntrinsicSize.Max)
+              .padding(bottom = 2.dp)
           )
         }
+        Box(
+          modifier = Modifier
+            .width(12.dp)
+            .height((4 + 56 * (day.playedMs.toFloat() / max)).dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(if (selected) highlightColor else baseColor)
+            .clickWithRipple {
+              selectedBucket = if (selected) null else day.dayBucket
+            }
+        )
+        TextSecondary(
+          if (index % 2 == 0) {
+            StatsTimeUtil.formatDayMmdd(day.dayBucket, dayStartHour)
+          } else {
+            ""
+          },
+          fontSize = 8.sp,
+          modifier = Modifier.padding(top = 2.dp)
+        )
       }
-    }
-
-    // 选中后展示完整的横坐标时间与具体数值
-    selectedIndex?.let { i ->
-      val day = data[i]
-      TextSecondary(
-        StatsTimeUtil.formatDay(day.dayBucket, dayStartHour) + "   " +
-          StatsTimeUtil.formatDuration(day.playedMs),
-        fontSize = 12.sp,
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-      )
     }
   }
 }

@@ -1239,7 +1239,12 @@ private fun HeaderCellText(text: String, width: Dp) {
       .padding(horizontal = CELL_PADDING, vertical = CELL_VERTICAL_PADDING),
     contentAlignment = Alignment.CenterStart
   ) {
-    TextPrimary(text = text, fontSize = CELL_FONT_SIZE, fontWeight = FontWeight.SemiBold)
+    TextPrimary(
+      text = text,
+      fontSize = CELL_FONT_SIZE,
+      fontWeight = FontWeight.SemiBold,
+      color = theme.cellTextColor()
+    )
   }
 }
 
@@ -1411,7 +1416,7 @@ private fun MetaCell(
           onValueChange = onValueChange,
           singleLine = true,
           maxLines = 1,
-          textStyle = TextStyle(fontSize = CELL_FONT_SIZE, color = theme.textPrimary),
+          textStyle = TextStyle(fontSize = CELL_FONT_SIZE, color = theme.cellTextColor()),
           modifier = Modifier
             .weight(1f)
             .onFocusEvent { fs ->
@@ -1421,7 +1426,7 @@ private fun MetaCell(
       } else {
         Text(
           text = value.ifBlank { "—" },
-          color = theme.textPrimary,
+          color = theme.cellTextColor(),
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,
           style = TextStyle(fontSize = CELL_FONT_SIZE),
@@ -1680,13 +1685,19 @@ private fun mode2CellColor(current: String, target: String): CellColor {
 @Composable
 @ReadOnlyComposable
 private fun AppTheme.mutedSurface(): Color =
-  if (isLight) Color.Black.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.09f)
+  if (isLight) Color.Black.copy(alpha = 0.02f) else Color.White.copy(alpha = 0.09f)
 
 /** 表头等需要比普通单元格更明显的容器底色 */
 @Composable
 @ReadOnlyComposable
 private fun AppTheme.headerSurface(): Color =
-  if (isLight) Color.Black.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.14f)
+  if (isLight) Color.Black.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.14f)
+
+/** 表格文字：浅色主题下用纯黑，深色主题沿用主题主文本色 */
+@Composable
+@ReadOnlyComposable
+private fun AppTheme.cellTextColor(): Color =
+  if (isLight) Color.Black else textPrimary
 
 /** 描边 / 表格网格线 */
 @Composable

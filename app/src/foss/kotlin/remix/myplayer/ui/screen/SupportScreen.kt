@@ -196,18 +196,6 @@ fun SupportScreen() {
           }
         }
       }
-
-      item(span = { GridItemSpan(maxLineSpan) }) {
-        TextSecondary(
-          text = stringResource(R.string.support_donate_note),
-          fontSize = 12.sp,
-          maxLine = Int.MAX_VALUE,
-          overflow = TextOverflow.Visible,
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp)
-        )
-      }
     }
   }
 }

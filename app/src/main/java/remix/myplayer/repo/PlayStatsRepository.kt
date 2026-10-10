@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -403,15 +404,39 @@ class PlayStatsRepository @Inject constructor(
  */
 object StatsTimeUtil {
 
-  /** 时间戳 -> 天序号（分界点之前算前一天） */
+  /**
+   * 时间戳 -> 天序号（按系统当前时区，分界点之前算前一天），与 [bucketStartTime] 互逆。
+   * 注意不能用 epoch 毫秒直接整除：那会忽略本地时区偏移（如 UTC+8 下“5 点分界”会变成本地 13 点）。
+   */
   fun dayBucket(timeMs: Long, dayStartHour: Int): Long {
-    val offset = dayStartHour * 3600_000L
-    return Math.floorDiv(timeMs - offset, 24L * 3600_000L)
+    val zone = TimeZone.getDefault()
+    val calendar = Calendar.getInstance(zone).apply {
+      timeInMillis = timeMs
+      set(Calendar.HOUR_OF_DAY, dayStartHour)
+      set(Calendar.MINUTE, 0)
+      set(Calendar.SECOND, 0)
+      set(Calendar.MILLISECOND, 0)
+      // 该时间还没到当天的分界点，归入前一天
+      if (timeMs < timeInMillis) {
+        add(Calendar.DAY_OF_MONTH, -1)
+      }
+    }
+    // 分界点在本地时区是“某日 dayStartHour 点”，加回时区偏移即等价于同钟点的 UTC 时间戳，
+    // 其整日除法结果正好等于该本地日期的天序号
+    val boundary = calendar.timeInMillis
+    return Math.floorDiv(boundary + zone.getOffset(boundary), 24L * 3600_000L)
   }
 
-  /** 天序号 -> 该天的起始时间戳 */
+  /** 天序号 -> 该天的起始时间戳（系统当前时区的分界点时刻） */
   fun bucketStartTime(bucket: Long, dayStartHour: Int): Long =
-    bucket * 24L * 3600_000L + dayStartHour * 3600_000L
+    Calendar.getInstance().apply {
+      timeInMillis = 0L // 1970-01-01 本地时间
+      set(Calendar.HOUR_OF_DAY, dayStartHour)
+      set(Calendar.MINUTE, 0)
+      set(Calendar.SECOND, 0)
+      set(Calendar.MILLISECOND, 0)
+      add(Calendar.DAY_OF_MONTH, bucket.toInt())
+    }.timeInMillis
 
   fun hourOfDay(timeMs: Long): Int {
     val calendar = Calendar.getInstance().apply { timeInMillis = timeMs }

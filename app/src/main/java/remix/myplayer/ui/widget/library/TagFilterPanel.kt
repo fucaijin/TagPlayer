@@ -59,7 +59,7 @@ private val DefaultExpandedHeight = 240.dp
  * 歌曲列表顶部的标签过滤区（展开后的内容）。
  * 头部（标签过滤 + 箭头）由调用方放在"随机播放全部"同一行，点击后此面板显示在其下方。
  *
- * 支持拖拽调整高度、搜索标签、5 种过滤模式（包含与/包含或/互斥与/互斥或/全匹配）、管理入口。
+ * 支持拖拽调整高度、搜索标签、5 种过滤模式（包含与/包含或/互斥/全匹配/或匹配）、管理入口。
  * 互斥模式下标签区分为左右两半：左侧用于"包含"过滤，右侧用于"排除"过滤。
  */
 @Composable
@@ -68,6 +68,8 @@ fun TagFilterPanel(
   aesthetic: Boolean,
   edgeAlign: Boolean,
   mode: TagFilterMode,
+  /** 下拉列表中可选的过滤模式（由设置 -> 标签管理控制，至少 1 项） */
+  modes: List<TagFilterMode>,
   includedTags: Set<String>,
   excludedTags: Set<String>,
   includeAnd: Boolean,
@@ -133,7 +135,7 @@ fun TagFilterPanel(
           }
         }
 
-        // 过滤模式：下拉选择（包含与/包含或/互斥与/互斥或/全匹配），选择后会保存
+        // 过滤模式：下拉选择（包含与/包含或/互斥/全匹配/或匹配），选择后会保存
         Box {
           TextPrimary(
             stringResource(mode.labelRes),
@@ -148,7 +150,7 @@ fun TagFilterPanel(
             containerColor = theme.dialogBackground,
             onDismissRequest = { modeMenuExpanded = false }
           ) {
-            TagFilterMode.entries.forEach { item ->
+            modes.forEach { item ->
               DropdownMenuItem(
                 text = {
                   Text(

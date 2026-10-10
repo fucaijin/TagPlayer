@@ -133,6 +133,8 @@ data class TagSettings(
   val fixedSortMode: TagFixedSortMode,
   /** 标签展示是否两端对齐（每行首尾贴父容器左右边，其余平均分配剩余宽度），与排序模式无关 */
   val edgeAlign: Boolean,
+  /** 标签过滤区下拉列表中显示的过滤模式（TagFilterMode.name 集合，至少保留 1 项） */
+  val filterModes: Set<String>,
 )
 
 @Stable

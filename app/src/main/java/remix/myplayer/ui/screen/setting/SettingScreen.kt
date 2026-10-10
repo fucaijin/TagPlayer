@@ -67,6 +67,7 @@ import remix.myplayer.ui.screen.setting.logic.play.AutoPlayLogic
 import remix.myplayer.ui.screen.setting.logic.tag.TagFixedSortLogic
 import remix.myplayer.ui.screen.setting.logic.tag.TagSmartSortLogic
 import remix.myplayer.ui.screen.setting.logic.tag.TagEdgeAlignLogic
+import remix.myplayer.ui.screen.setting.logic.tag.TagFilterModesLogic
 import remix.myplayer.ui.screen.setting.logic.tag.SongTagIOLogic
 import remix.myplayer.ui.screen.setting.logic.play.DecoderModeLogic
 import remix.myplayer.ui.screen.setting.logic.play.IgnoreAudioFocusLogic
@@ -318,6 +319,9 @@ private fun TagPreferenceItems() {
 
   // 两端对齐展示与排序模式无关，始终可设置
   TagEdgeAlignLogic()
+
+  // 标签过滤区下拉列表显示哪些过滤模式
+  TagFilterModesLogic()
 
   // 歌曲标签的导出/导入（JSON）
   SongTagIOLogic()

@@ -72,6 +72,16 @@ fun SongDetailDialog() {
     }
   }
 
+  // 有未保存的修改时，关闭（关闭按钮/遮罩/返回键）前先确认
+  val closeConfirmState = rememberDialogState()
+  val requestClose: () -> Unit = {
+    if (nameChanged) {
+      closeConfirmState.show()
+    } else {
+      state.dialogState.dismiss()
+    }
+  }
+
   NormalDialog(
     dialogState = state.dialogState,
     autoDismiss = false,
@@ -143,7 +153,27 @@ fun SongDetailDialog() {
     },
     positive = stringResource(R.string.close),
     onPositive = {
+      requestClose()
+    },
+    onDismissRequest = {
+      requestClose()
+    },
+    dismissOnRequest = false
+  )
+
+  // 未保存修改的关闭确认弹窗
+  NormalDialog(
+    dialogState = closeConfirmState,
+    autoDismiss = false,
+    content = stringResource(R.string.song_name_unsaved_confirm),
+    positive = stringResource(R.string.close),
+    onPositive = {
+      closeConfirmState.dismiss()
       state.dialogState.dismiss()
+    },
+    negative = stringResource(R.string.cancel),
+    onNegative = {
+      closeConfirmState.dismiss()
     }
   )
 

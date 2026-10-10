@@ -82,6 +82,13 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
   var includedFilterTags by remember { mutableStateOf(emptySet<String>()) }
   var excludedFilterTags by remember { mutableStateOf(emptySet<String>()) }
 
+  // 下拉列表可选的过滤模式（由设置 -> 标签管理控制，至少保留 1 项）。
+  // 当前模式被隐藏时回落到第一个可见模式，但不改写已保存的选择，重新显示后仍会恢复。
+  val availableFilterModes = TagFilterMode.entries.filter { it.name in settingState.tag.filterModes }
+  val effectiveFilterMode = filterMode.takeIf { it in availableFilterModes }
+    ?: availableFilterModes.firstOrNull()
+    ?: filterMode
+
   // "无标签"是过滤区的特殊默认标签：选中它表示过滤出未设置任何标签的歌曲
   val noTagLabel = stringResource(R.string.tag_no_tag)
 
@@ -89,7 +96,7 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
   val filteredSongs =
     remember(
       songs, songTags, includedFilterTags, excludedFilterTags,
-      filterMode, filterIncludeAnd, filterExcludeAnd, noTagLabel
+      effectiveFilterMode, filterIncludeAnd, filterExcludeAnd, noTagLabel
     ) {
       if (includedFilterTags.isEmpty() && excludedFilterTags.isEmpty()) {
         songs
@@ -99,7 +106,7 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
             songTags[song.data] ?: emptySet(),
             includedFilterTags,
             excludedFilterTags,
-            filterMode,
+            effectiveFilterMode,
             noTagLabel,
             filterIncludeAnd,
             filterExcludeAnd
@@ -111,7 +118,7 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
   // 标签过滤变化后，将过滤结果同步为播放队列（保持当前歌曲不中断播放），
   // 这样后续的下一首/顺序/随机/单曲循环都以过滤后的列表为播放列表。
   var lastFilter by remember { mutableStateOf<Pair<Set<String>, Set<String>>?>(null) }
-  LaunchedEffect(includedFilterTags, excludedFilterTags, filterMode, filterIncludeAnd, filterExcludeAnd) {
+  LaunchedEffect(includedFilterTags, excludedFilterTags, effectiveFilterMode, filterIncludeAnd, filterExcludeAnd) {
     val currentFilter = includedFilterTags to excludedFilterTags
     val previous = lastFilter
     lastFilter = currentFilter
@@ -209,7 +216,8 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
         allTags = orderedTags + noTagLabel,
         aesthetic = settingState.tag.fixedSortMode == TagFixedSortMode.AESTHETIC,
         edgeAlign = settingState.tag.edgeAlign,
-        mode = filterMode,
+        mode = effectiveFilterMode,
+        modes = availableFilterModes,
         includedTags = includedFilterTags,
         excludedTags = excludedFilterTags,
         includeAnd = filterIncludeAnd,
@@ -320,6 +328,7 @@ fun SongScreen(scrollToCurrentEvent: SharedFlow<Unit>? = null) {
  * - 互斥与：在"包含与"基础上，歌曲不能包含 [excluded] 中任何标签
  * - 互斥或：在"包含或"基础上，歌曲不能包含 [excluded] 中任何标签
  * - 全匹配：歌曲标签与 [included] 完全一致（不多不少）
+ * - 或匹配：歌曲标签全部落在 [included] 之内，且至少命中其中一个（无选中之外的标签）
  *
  * [noTagLabel]（"无标签"）表示歌曲没有任何标签。
  */
@@ -361,6 +370,12 @@ private fun matchesTagFilter(
       !noTagIncluded -> includeTags.any { it in songTags }
       includeTags.isEmpty() -> noTags
       else -> noTags || includeTags.any { it in songTags }
+    }
+
+    // 或匹配：歌曲标签须全部在选中标签之内，且至少命中一个（选中"无标签"时按无标签歌曲处理）
+    TagFilterMode.ONLY -> when {
+      noTags -> noTagIncluded
+      else -> songTags.all { it in includeTags } && includeTags.any { it in songTags }
     }
 
     // 包含与 / 互斥：是否"同时带所有选中标签"由 includeAnd 决定

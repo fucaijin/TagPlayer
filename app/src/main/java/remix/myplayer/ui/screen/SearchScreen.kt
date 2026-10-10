@@ -344,18 +344,13 @@ private fun SearchHistoryList(
   val theme = LocalTheme.current
 
   Column(modifier = Modifier.fillMaxSize()) {
-    TextSecondary(
-      text = stringResource(R.string.search_history),
-      fontSize = 13.sp,
-      modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 4.dp)
-    )
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
       items(histories) { keyword ->
         Row(
           modifier = Modifier
             .fillMaxWidth()
             .clickableWithoutRipple { onClickHistory(keyword) }
-            .padding(start = 24.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+            .padding(start = 24.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
           Icon(
@@ -371,9 +366,14 @@ private fun SearchHistoryList(
               .weight(1f)
               .padding(start = 12.dp)
           )
-          IconButton(onClick = { onDeleteHistory(keyword) }) {
+          Box(
+            modifier = Modifier
+              .size(28.dp)
+              .clickableWithoutRipple { onDeleteHistory(keyword) },
+            contentAlignment = Alignment.Center
+          ) {
             Icon(
-              modifier = Modifier.size(18.dp),
+              modifier = Modifier.size(16.dp),
               imageVector = Icons.Filled.Clear,
               tint = theme.textSecondary,
               contentDescription = stringResource(R.string.delete)

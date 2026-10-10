@@ -11,14 +11,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import remix.myplayer.R
@@ -64,14 +67,17 @@ fun SwitchPreference(
 ) {
   Preference(onClick = {
     onCheckedChange(!checked)
-  }, title, content) {
-    Switch(
-      modifier = Modifier.scale(0.9f),
-      checked = checked,
-      colors = LocalTheme.current.switchColors(),
-      onCheckedChange = {
-        onCheckedChange(it)
-      })
+  }, title, content, verticalPadding = 6.dp) {
+    // Switch 默认带 48dp 的最小交互尺寸，会让整行被撑高，这里关掉以压缩行高
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+      Switch(
+        modifier = Modifier.scale(0.9f),
+        checked = checked,
+        colors = LocalTheme.current.switchColors(),
+        onCheckedChange = {
+          onCheckedChange(it)
+        })
+    }
   }
 }
 
@@ -80,6 +86,7 @@ fun Preference(
   onClick: () -> Unit,
   title: String,
   content: String? = null,
+  verticalPadding: Dp = 10.dp,
   leading: (@Composable (() -> Unit))? = null,
   trailing: (@Composable (() -> Unit))? = null
 ) {
@@ -91,7 +98,7 @@ fun Preference(
         onClick()
       }
       .background(color = LocalTheme.current.mainBackground, shape = RectangleShape)
-      .padding(horizontal = 16.dp, vertical = 10.dp),
+      .padding(horizontal = 16.dp, vertical = verticalPadding),
     verticalAlignment = Alignment.CenterVertically) {
     leading?.invoke()
 
@@ -101,7 +108,11 @@ fun Preference(
         .weight(1f),
       verticalArrangement = Arrangement.Center
     ) {
-      TextPrimary(title, modifier = Modifier.padding(bottom = 4.dp), fontSize = 16.sp)
+      TextPrimary(
+        title,
+        modifier = Modifier.padding(bottom = if (content != null) 4.dp else 0.dp),
+        fontSize = 16.sp
+      )
       if (content != null) {
         TextSecondary(content, fontSize = 14.sp, maxLine = Int.MAX_VALUE)
       }

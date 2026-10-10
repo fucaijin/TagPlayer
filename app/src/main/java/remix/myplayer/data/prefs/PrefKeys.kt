@@ -194,8 +194,11 @@ object PrefKeys {
     /** 播放页标题的歌名下方是否显示艺术家-专辑名 */
     const val PLAYING_TITLE_SHOW_ARTIST_ALBUM = "playing_title_show_artist_album"
 
-    /** 标签过滤模式（包含与/包含或/互斥/全匹配） */
+    /** 标签过滤模式（包含与/包含或/互斥/全匹配/或匹配） */
     const val TAG_FILTER_MODE = "tag_filter_mode"
+
+    /** 标签过滤区下拉列表中隐藏的过滤模式（TagFilterMode.name 集合，至少保留 1 项可见） */
+    const val TAG_FILTER_HIDDEN_MODES = "tag_filter_hidden_modes"
 
     /** 互斥模式下，左侧"包含"侧是否按"与"（同时带所有选中标签）过滤，否则按"或" */
     const val TAG_FILTER_EXCLUDE_INCLUDE_AND = "tag_filter_exclude_include_and"

@@ -69,6 +69,7 @@
   <string name="tag_mode_exclusive_or">Contains any, excludes any</string>
   <string name="tag_mode_exact">Exact match</string>
   <string name="tag_mode_exclusive">Exclusive</string>
+  <string name="tag_mode_only">Any match</string>
   <string name="tag_filter_include">Include</string>
   <string name="tag_filter_exclude">Exclude</string>
   <string name="tag_filter_and">AND</string>
@@ -154,6 +155,7 @@
   <string name="stats_daily_active">Earliest / latest listening per day</string>
   <string name="stats_earliest">Earliest</string>
   <string name="stats_latest">Latest</string>
+  <string name="stats_next_day">next day </string>
   <string name="stats_tag_song_count">Songs per tag</string>
   <string name="stats_favorite_tags">Most played tags</string>
   <string name="stats_search_ranking">Most searched keywords</string>
@@ -288,7 +290,7 @@
   <string name="feedback_contact_hint">Please enter your contact information</string>
   <string name="lrc_choose">Choose the source of the lyrics</string>
   <string name="song_detail">Song details</string>
-  <string name="song_edit">Metadata editor</string>
+  <string name="song_edit">Edit metadata</string>
   <string name="edit_tags">Edit tags</string>
   <string name="common">Common</string>
   <string name="setting_common_desc">Scan, language and general behavior</string>
@@ -374,6 +376,7 @@
   <string name="song_path">File path: </string>
   <string name="song_name">File name: </string>
   <string name="song_name_conflict">A file with the same name already exists in this folder</string>
+  <string name="song_name_unsaved_confirm">The name has been modified but not saved. Close anyway?</string>
   <string name="file_size">Size: </string>
   <string name="format">Format: </string>
   <string name="length">Length: </string>
@@ -589,15 +592,15 @@
   <string name="list_show_tag_tip">Show each song\'s tags at the bottom of list items</string>
   <string name="list_tag_manage">Tag manage button in list</string>
   <string name="list_tag_manage_tip">Show a star button in each list item to manage its tags</string>
-  <string name="list_tag_edit">Show \"Metadata editor\" entry</string>
-  <string name="list_tag_edit_tip">Show the \"Metadata editor\" option in list item and playing page menus</string>
+  <string name="list_tag_edit">Show \"Edit metadata\" entry</string>
+  <string name="list_tag_edit_tip">Show the \"Edit metadata\" option in list item and playing page menus</string>
   <string name="bottom_bar_use_filename">Show song filename in bottom bar</string>
   <string name="bottom_bar_use_filename_tip">Show the filename (without extension) instead of the metadata title in the song list bottom bar</string>
   <string name="bottom_bar_show_tag">Show tags in bottom bar</string>
   <string name="bottom_bar_show_tag_tip">Show each song\'s tags below its name in the song list bottom bar</string>
   <string name="playing_title_use_filename">Show song filename as playing screen title</string>
   <string name="playing_title_use_filename_tip">Show the filename (without extension) instead of the metadata title at the top of the playing screen</string>
-  <string name="song_sort_rules">Song list sort rules</string>
+  <string name="song_sort_rules">Song list sort items - show/hide</string>
   <string name="song_sort_rules_tip">Customize which sort options appear in the song list sort menu (at least one must remain)</string>
   <string name="stats_modules">Modules</string>
   <string name="stats_module_rows">List rows</string>
@@ -623,6 +626,8 @@
   <string name="setting_tag_desc">Tag order in tag dialogs, and song tag export / import</string>
   <string name="tag_smart_sort">Smart sort</string>
   <string name="tag_smart_sort_tip">Sort tags by last used time and usage count; turn off to keep a fixed order by creation time</string>
+  <string name="tag_filter_show_modes">Tag filter modes</string>
+  <string name="tag_filter_show_modes_tip">Choose which filter modes appear in the song list tag filter area (at least one must remain)</string>
   <string name="tag_fixed_sort">Fixed position order</string>
   <string name="tag_sort_created_asc">Creation time ascending (oldest first)</string>
   <string name="tag_sort_created_desc">Creation time descending (newest first)</string>
@@ -866,7 +871,7 @@
   <string name="usage_locate_playing_title">Locate the playing song</string>
   <string name="usage_locate_playing_desc">On the Home screen\'s \"Songs\" tab, double-tap the tab; the list will automatically scroll and locate the currently playing song.</string>
   <string name="usage_tag_filter_title">Tag filter modes</string>
-  <string name="usage_tag_filter_desc">The tag filter area at the top of the song list has a dropdown to choose the filter mode:\nContains all: a song is kept only if it has every selected tag.\nContains any: a song is kept if it has any one of the selected tags.\nExclusive: split into left and right sides; songs are first filtered by the left tags, then matching songs are excluded by the right tags.\nExact match: a song is kept only if its tags are exactly the selected tags (no more, no less).</string>
+  <string name="usage_tag_filter_desc">The tag filter area at the top of the song list has a dropdown to choose the filter mode:\nContains all: a song is kept only if it has every selected tag.\nContains any: a song is kept if it has any one of the selected tags.\nExclusive: split into left and right sides; songs are first filtered by the left tags, then matching songs are excluded by the right tags.\nExact match: a song is kept only if its tags are exactly the selected tags (no more, no less).\nAny match: a song is kept only if it has at least one selected tag and none of the unselected ones.</string>
   <string name="usage_clear_search_title">Clear search history</string>
   <string name="usage_clear_search_desc">Follow the steps below to delete all recent search keywords:\nSettings -> Other -> Clear search history\nThen tap \"Confirm\" in the pop-up dialog to clear all search history.</string>
   <string name="usage_tag_export_import_title">Export &amp; import tags</string>

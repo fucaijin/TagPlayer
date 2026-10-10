@@ -23,6 +23,7 @@ import remix.myplayer.data.model.audio.Song
 import remix.myplayer.data.model.misc.Library
 import remix.myplayer.data.model.misc.Library.Companion.TAG_SONG
 import remix.myplayer.data.model.misc.TagFixedSortMode
+import remix.myplayer.data.model.misc.TagFilterMode
 import remix.myplayer.data.model.misc.LyricOrder
 import remix.myplayer.data.prefs.LyricPrefs
 import remix.myplayer.data.prefs.SettingPrefs
@@ -167,7 +168,11 @@ class SettingViewModel @Inject constructor(
     tag = TagSettings(
       smartSort = settingPrefs.tagSmartSort,
       fixedSortMode = TagFixedSortMode.fromValue(settingPrefs.tagFixedSortMode),
-      edgeAlign = settingPrefs.tagEdgeAlign
+      edgeAlign = settingPrefs.tagEdgeAlign,
+      filterModes = TagFilterMode.entries
+        .filter { it.name !in settingPrefs.tagFilterHiddenModes }
+        .map { it.name }
+        .toSet()
     ),
     analysis = AnalysisSettings(
       dayStartHour = settingPrefs.statsDayStartHour
@@ -573,6 +578,22 @@ class SettingViewModel @Inject constructor(
   fun setTagEdgeAlign(enabled: Boolean) {
     settingPrefs.tagEdgeAlign = enabled
     _settingsState.update { it.copy(tag = it.tag.copy(edgeAlign = enabled)) }
+  }
+
+  /**
+   * 标签过滤区下拉列表是否显示某个过滤模式（设置 -> 标签管理）。
+   * 存储的是"被隐藏的模式"，因此新版本新增的模式默认显示；至少保留 1 项可见，否则过滤区将无模式可选。
+   */
+  fun setTagFilterModeVisible(mode: TagFilterMode, visible: Boolean) {
+    val hidden = settingPrefs.tagFilterHiddenModes
+      .filter { name -> TagFilterMode.entries.any { it.name == name } }
+      .toMutableSet()
+    if (visible) hidden.remove(mode.name) else hidden.add(mode.name)
+    // 至少保留 1 个可见模式
+    if (TagFilterMode.entries.size - hidden.size <= 0) return
+    settingPrefs.tagFilterHiddenModes = hidden
+    val visibleModes = TagFilterMode.entries.filter { it.name !in hidden }.map { it.name }.toSet()
+    _settingsState.update { it.copy(tag = it.tag.copy(filterModes = visibleModes)) }
   }
 
   // -------- Other(其他) 分组 ----------

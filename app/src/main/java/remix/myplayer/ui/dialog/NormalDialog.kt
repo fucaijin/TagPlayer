@@ -63,6 +63,9 @@ fun NormalDialog(
   neutralRes: Int? = null, onNeutral: (() -> Unit)? = null,
   negativeRes: Int? = R.string.cancel, onNegative: (() -> Unit)? = null,
   onDismissRequest: (() -> Unit)? = null,
+  // when false, outside tap/back press only invokes onDismissRequest and leaves the dialog open,
+  // so the caller can intercept it (e.g. ask for confirmation before closing)
+  dismissOnRequest: Boolean = true,
   onDismiss: (() -> Unit)? = null,
   itemsCallback: ItemsCallback? = null,
   itemsCallbackSingleChoice: ItemsCallbackSingleChoice? = null,
@@ -87,6 +90,7 @@ fun NormalDialog(
     negative = if (negativeRes != null) stringResource(negativeRes) else null,
     onNegative = onNegative,
     onDismissRequest = onDismissRequest,
+    dismissOnRequest = dismissOnRequest,
     onDismiss = onDismiss,
     itemsCallback = itemsCallback,
     itemsCallbackSingleChoice = itemsCallbackSingleChoice,
@@ -113,6 +117,9 @@ fun NormalDialog(
   neutral: String? = null, onNeutral: (() -> Unit)? = null,
   negative: String? = stringResource(R.string.cancel), onNegative: (() -> Unit)? = null,
   onDismissRequest: (() -> Unit)? = null,
+  // when false, outside tap/back press only invokes onDismissRequest and leaves the dialog open,
+  // so the caller can intercept it (e.g. ask for confirmation before closing)
+  dismissOnRequest: Boolean = true,
   onDismiss: (() -> Unit)? = null,
   itemsCallback: ItemsCallback? = null,
   itemsCallbackSingleChoice: ItemsCallbackSingleChoice? = null,
@@ -129,7 +136,9 @@ fun NormalDialog(
     usePlatformDefaultWidth = usePlatformDefaultWidth,
     onDismissRequest = {
       onDismissRequest?.invoke()
-      dialogState.dismiss()
+      if (dismissOnRequest) {
+        dialogState.dismiss()
+      }
     },
     onDismiss = {
       onDismiss?.invoke()
