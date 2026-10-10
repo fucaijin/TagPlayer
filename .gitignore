@@ -23,3 +23,5 @@ README_dev.md
 AuxiliaryProjects
 /i18n
 build_install.log
+__pycache__
+src_tmp

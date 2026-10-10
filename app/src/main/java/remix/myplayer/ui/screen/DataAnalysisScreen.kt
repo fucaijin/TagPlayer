@@ -1110,9 +1110,16 @@ private fun DailyDurationChart(days: List<DayPlayStat>, dayStartHour: Int) {
         modifier = Modifier.width(18.dp)
       ) {
         if (selected) {
+          // 精简时长：1h23m / 45m，不用补零
+          val minutes = day.playedMs / 60_000
+          val durationText = if (minutes >= 60) {
+            "${minutes / 60}h${minutes % 60}m"
+          } else {
+            "${minutes}m"
+          }
           // 时长显示在该条顶端；列宽固定 18dp，用 requiredWidth 按文字自身宽度布局并居中溢出，避免折行截断
           TextSecondary(
-            StatsTimeUtil.formatDuration(day.playedMs),
+            durationText,
             fontSize = 9.sp,
             color = highlightColor,
             modifier = Modifier
